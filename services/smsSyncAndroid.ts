@@ -53,7 +53,7 @@ function findExisting(txs: Transaction[], dedupeKey: string, fp: string): Transa
 }
 
 export async function syncSmsToMongo(
-  sinceDate: Date = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+  sinceDate: Date = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
 ): Promise<{ scanned: number; found: number; imported: number }> {
   if (Platform.OS !== 'android') {
     throw new Error('SMS sync is only supported on Android.');
@@ -73,7 +73,7 @@ export async function syncSmsToMongo(
 
   const messages: { body: string; date: string }[] = await new Promise((resolve, reject) => {
     SmsAndroid.list(
-      JSON.stringify({ box: 'inbox', minDate: sinceDate.getTime(), maxCount: 500 }),
+      JSON.stringify({ box: 'inbox', minDate: sinceDate.getTime(), maxCount: 10000 }),
       (fail: string) => reject(new Error(`Could not read SMS: ${fail}`)),
       (_count: number, smsList: string) => resolve(JSON.parse(smsList))
     );
@@ -89,7 +89,7 @@ export async function syncSmsToMongo(
 
   const candidates = parsed.map((p) => parsedToTransaction(p!));
 
-  const existingTxs = await api.getTransactions({ source: 'sms', limit: 1000 });
+  const existingTxs = await api.getTransactions({ source: 'sms', limit: 10000 });
   const existingSet = buildExistingSet(existingTxs);
 
   const nameRepairs: { id: string; recipient: string }[] = [];

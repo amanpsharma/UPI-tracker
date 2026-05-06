@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
       if (from) filter.paidAt.$gte = new Date(from);
       if (to) filter.paidAt.$lte = new Date(to);
     }
-    const parsedLimit = Math.min(Number(limit) || 50, 2000);
+    const parsedLimit = Math.min(Number(limit) || 50, 10000); // Increased max limit
     const transactions = await Transaction.find(filter)
       .sort({ paidAt: -1 })
       .limit(parsedLimit);

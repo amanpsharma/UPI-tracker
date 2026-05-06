@@ -1,5 +1,11 @@
 import { useCallback, useState } from "react";
-import { View, FlatList, StyleSheet, RefreshControl, TouchableOpacity } from "react-native";
+import {
+  View,
+  FlatList,
+  StyleSheet,
+  RefreshControl,
+  TouchableOpacity,
+} from "react-native";
 import { subDays, startOfMonth } from "date-fns";
 import {
   Text,
@@ -30,7 +36,10 @@ export default function History() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  const dateRangeOptions: { label: string; value: "7d" | "month" | "90d" | "" }[] = [
+  const dateRangeOptions: {
+    label: string;
+    value: "7d" | "month" | "90d" | "";
+  }[] = [
     { label: "All", value: "" },
     { label: "7D", value: "7d" },
     { label: "Month", value: "month" },
@@ -51,7 +60,7 @@ export default function History() {
         category: filterCategory || undefined,
         type: filterType || undefined,
         from: getFromDate(dateRange),
-        limit: 300,
+        limit: 10000,
       });
       setTransactions(data);
     } catch (err: any) {
@@ -143,21 +152,27 @@ export default function History() {
             <View
               style={[
                 styles.badge,
-                (item.type ?? 'sent') === 'sent' ? styles.sentBadge : styles.receivedBadge,
+                (item.type ?? "sent") === "sent"
+                  ? styles.sentBadge
+                  : styles.receivedBadge,
               ]}
             >
               <MaterialCommunityIcons
-                name={(item.type ?? 'sent') === 'sent' ? "arrow-up" : "arrow-down"}
+                name={
+                  (item.type ?? "sent") === "sent" ? "arrow-up" : "arrow-down"
+                }
                 size={11}
-                color={(item.type ?? 'sent') === 'sent' ? "#dc2626" : "#059669"}
+                color={(item.type ?? "sent") === "sent" ? "#dc2626" : "#059669"}
               />
               <Text
                 style={[
                   styles.badgeText,
-                  (item.type ?? 'sent') === 'sent' ? styles.sentBadgeText : styles.receivedBadgeText,
+                  (item.type ?? "sent") === "sent"
+                    ? styles.sentBadgeText
+                    : styles.receivedBadgeText,
                 ]}
               >
-                {(item.type ?? 'sent') === 'sent' ? "Sent" : "Received"}
+                {(item.type ?? "sent") === "sent" ? "Sent" : "Received"}
               </Text>
             </View>
             <View
@@ -245,16 +260,33 @@ export default function History() {
       <View style={styles.typeRow}>
         {(["", "sent", "received"] as const).map((t) => {
           const active = filterType === t;
-          const label = t === "" ? "All" : t === "sent" ? "↑ Sent" : "↓ Received";
+          const label =
+            t === "" ? "All" : t === "sent" ? "↑ Sent" : "↓ Received";
           const bg = active
-            ? t === "sent" ? "#dc2626" : t === "received" ? "#059669" : "#6200ee"
+            ? t === "sent"
+              ? "#dc2626"
+              : t === "received"
+                ? "#059669"
+                : "#6200ee"
             : "#fff";
-          const color = active ? "#fff" : t === "sent" ? "#dc2626" : t === "received" ? "#059669" : "#555";
+          const color = active
+            ? "#fff"
+            : t === "sent"
+              ? "#dc2626"
+              : t === "received"
+                ? "#059669"
+                : "#555";
           return (
             <TouchableOpacity
               key={t}
-              style={[styles.typeChip, { backgroundColor: bg, borderColor: active ? bg : "#e5e7eb" }]}
-              onPress={() => { setFilterType(t); setLoading(true); }}
+              style={[
+                styles.typeChip,
+                { backgroundColor: bg, borderColor: active ? bg : "#e5e7eb" },
+              ]}
+              onPress={() => {
+                setFilterType(t);
+                setLoading(true);
+              }}
             >
               <Text style={[styles.typeChipText, { color }]}>{label}</Text>
             </TouchableOpacity>
@@ -270,9 +302,19 @@ export default function History() {
             <TouchableOpacity
               key={value}
               style={[styles.dateChip, active && styles.dateChipActive]}
-              onPress={() => { setDateRange(value); setLoading(true); }}
+              onPress={() => {
+                setDateRange(value);
+                setLoading(true);
+              }}
             >
-              <Text style={[styles.dateChipText, active && styles.dateChipTextActive]}>{label}</Text>
+              <Text
+                style={[
+                  styles.dateChipText,
+                  active && styles.dateChipTextActive,
+                ]}
+              >
+                {label}
+              </Text>
             </TouchableOpacity>
           );
         })}
@@ -474,7 +516,12 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   badgeText: { fontSize: 10, fontWeight: "600", textTransform: "uppercase" },
-  pillRow: { flexDirection: "row", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" },
+  pillRow: {
+    flexDirection: "row",
+    gap: 4,
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+  },
   sentBadge: { backgroundColor: "#fee2e2" },
   sentBadgeText: { color: "#dc2626" },
   receivedBadge: { backgroundColor: "#d1fae5" },
