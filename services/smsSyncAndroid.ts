@@ -34,12 +34,22 @@ function fingerprint(amount: number, paidAt: string, upiId: string): string {
 function buildExistingSet(existing: Transaction[]): Set<string> {
   const set = new Set<string>();
   for (const t of existing) {
-    // Match by dedupeKey if stored (new records)
     if (t.dedupeKey) set.add(t.dedupeKey);
-    // Always also add the field-based fingerprint so old records (dedupeKey:'') are matched
     set.add(fingerprint(t.amount, t.paidAt, t.upiId));
   }
   return set;
+}
+
+// Returns true when the stored name is a poor placeholder and the parsed name is a real full name.
+function shouldUpdateRecipient(stored: string, parsed: string): boolean {
+  if (!parsed || stored === parsed) return false;
+  const storedIsPoor = stored === 'UPI Payment' || !stored.includes(' ');
+  const parsedIsRicher = parsed.includes(' ') || parsed.length > stored.length;
+  return storedIsPoor && parsedIsRicher;
+}
+
+function findExisting(txs: Transaction[], dedupeKey: string, fp: string): Transaction | undefined {
+  return txs.find((t) => (t.dedupeKey && t.dedupeKey === dedupeKey) || fingerprint(t.amount, t.paidAt, t.upiId) === fp);
 }
 
 export async function syncSmsToMongo(
@@ -79,18 +89,36 @@ export async function syncSmsToMongo(
 
   const candidates = parsed.map((p) => parsedToTransaction(p!));
 
-  // Fetch all existing SMS transactions and build a fingerprint set.
-  // Matches BOTH old records (no dedupeKey) and new records (with dedupeKey).
-  const existing = await api.getTransactions({ source: 'sms', limit: 1000 });
-  const existingSet = buildExistingSet(existing);
+  const existingTxs = await api.getTransactions({ source: 'sms', limit: 1000 });
+  const existingSet = buildExistingSet(existingTxs);
+
+  const nameRepairs: { id: string; recipient: string }[] = [];
 
   const newTransactions = candidates.filter((tx) => {
-    // Block if dedupeKey already known
-    if (tx.dedupeKey && existingSet.has(tx.dedupeKey)) return false;
-    // Block if field-based fingerprint already exists (catches old records)
-    if (existingSet.has(fingerprint(tx.amount, tx.paidAt, tx.upiId))) return false;
+    const fp = fingerprint(tx.amount, tx.paidAt, tx.upiId);
+    const isDupe =
+      (tx.dedupeKey && existingSet.has(tx.dedupeKey)) ||
+      existingSet.has(fp);
+
+    if (isDupe) {
+      // Fix stale "UPI Payment" / bare-username names now that we can extract a real name.
+      const match = findExisting(existingTxs, tx.dedupeKey, fp);
+      if (match && shouldUpdateRecipient(match.recipient, tx.recipient)) {
+        nameRepairs.push({ id: match._id, recipient: tx.recipient });
+      }
+      return false;
+    }
     return true;
   });
+
+  // Patch stale recipient names in parallel (fire-and-forget errors).
+  if (nameRepairs.length > 0) {
+    await Promise.all(
+      nameRepairs.map(({ id, recipient }) =>
+        api.updateTransaction(id, { recipient }).catch(() => {})
+      )
+    );
+  }
 
   if (newTransactions.length === 0) {
     return { scanned, found: parsed.length, imported: 0 };

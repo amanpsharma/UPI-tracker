@@ -16,15 +16,23 @@ const transactionSchema = new mongoose.Schema(
       enum: ['sms', 'manual'],
       default: 'manual',
     },
+    type: {
+      type: String,
+      enum: ['sent', 'received'],
+      default: 'sent',
+    },
     transactionId: { type: String, default: '' },
     paidAt: { type: Date, default: Date.now },
-    // Unique fingerprint used to deduplicate SMS syncs
-    dedupeKey: { type: String, default: '' },
+    // Unique fingerprint used to deduplicate SMS syncs (no default — sparse index skips missing)
+    dedupeKey: { type: String },
   },
   { timestamps: true }
 );
 
-// Sparse so manual transactions (no dedupeKey) are not affected
-transactionSchema.index({ dedupeKey: 1 }, { unique: true, sparse: true });
+// Only index non-empty dedupeKeys — partialFilterExpression cannot be combined with sparse
+transactionSchema.index(
+  { dedupeKey: 1 },
+  { unique: true, partialFilterExpression: { dedupeKey: { $exists: true, $gt: '' } } }
+);
 
 module.exports = mongoose.model('Transaction', transactionSchema);

@@ -1,6 +1,6 @@
 import { Category } from '@/types';
 
-export const API_BASE_URL = 'http://192.168.1.68:3001/api';
+export const API_BASE_URL = 'https://seablack.onrender.com/api';
 
 export const CATEGORY_ICONS: Record<Category, string> = {
   Food: 'food',
@@ -30,4 +30,14 @@ export const CATEGORIES: Category[] = [
   'Entertainment',
   'Health',
   'Other',
+];
+
+// Maps UPI handle keywords / merchant names → category
+export const MERCHANT_CATEGORY_MAP: { pattern: RegExp; category: Category }[] = [
+  { pattern: /swiggy|zomato|blinkit|dunzo|zepto|burger|pizza|kfc|mcdonalds|dominos|starbucks|cafe|restaurant|food/i, category: 'Food' },
+  { pattern: /uber|ola|rapido|redbus|irctc|railway|metro|petrol|fuel|parking|toll/i, category: 'Transport' },
+  { pattern: /amazon|flipkart|myntra|ajio|meesho|nykaa|snapdeal|shopsy|reliance|dmart|bigbasket|grofers|blinkit/i, category: 'Shopping' },
+  { pattern: /electricity|water|gas|broadband|jio|airtel|bsnl|vodafone|vi|tata|recharge|bill|insurance|emi|loan/i, category: 'Bills' },
+  { pattern: /netflix|hotstar|spotify|youtube|prime|bookmyshow|pvr|inox|gaming|game/i, category: 'Entertainment' },
+  { pattern: /hospital|clinic|pharmacy|apollo|medplus|health|doctor|lab|diagnostic|med/i, category: 'Health' },
 ];

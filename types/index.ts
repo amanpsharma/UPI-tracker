@@ -8,6 +8,7 @@ export type Category =
   | 'Other';
 
 export type TransactionSource = 'sms' | 'manual';
+export type TransactionType = 'sent' | 'received';
 
 export interface Transaction {
   _id: string;
@@ -17,6 +18,7 @@ export interface Transaction {
   note: string;
   category: Category;
   source: TransactionSource;
+  type: TransactionType;
   transactionId: string;
   dedupeKey: string;
   paidAt: string;
