@@ -1,6 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import { API_BASE_URL } from '@/constants';
-import { Category, Stats, Transaction, TransactionType } from '@/types';
+import { Category, MonthlyData, Stats, Transaction, TransactionType } from '@/types';
 
 const client = axios.create({ baseURL: API_BASE_URL, timeout: 15000 });
 
@@ -26,6 +26,8 @@ export const api = {
     from?: string;
     to?: string;
     limit?: number;
+    skip?: number;
+    search?: string;
   }) => {
     const { data } = await client.get<Transaction[]>('/transactions', { params });
     return data;
@@ -68,5 +70,10 @@ export const api = {
 
   deleteTransaction: async (id: string): Promise<void> => {
     await client.delete(`/transactions/${id}`);
+  },
+
+  getMonthly: async (): Promise<MonthlyData[]> => {
+    const { data } = await client.get<MonthlyData[]>('/transactions/monthly');
+    return data;
   },
 };

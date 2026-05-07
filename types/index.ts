@@ -25,8 +25,17 @@ export interface Transaction {
   createdAt: string;
 }
 
+export interface MonthlyData {
+  month: string; // YYYY-MM
+  spent: number;
+  received: number;
+  count: number;
+  topCategory: string | null;
+}
+
 export interface Stats {
   thisMonth: { total: number; count: number };
+  lastMonth: { total: number; count: number };
   allTime: { total: number; count: number };
   byCategory: { _id: Category; total: number; count: number }[];
 }

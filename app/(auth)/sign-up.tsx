@@ -1,375 +1,425 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-} from "react-native";
-import { Text, TextInput, Button, Snackbar } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useAuth, useSignUp } from "@clerk/clerk-expo";
-import { router } from "expo-router";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import SocialAuthButtons from "@/components/SocialAuthButtons";
+  View, StyleSheet, KeyboardAvoidingView, Platform,
+  TouchableOpacity, ScrollView, TextInput as RNTextInput,
+  ActivityIndicator, Alert,
+} from 'react-native';
+import { Text } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth, useSignUp, useSSO } from '@clerk/clerk-expo';
+import * as AuthSession from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
+import { router } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import type { OAuthStrategy } from '@clerk/types';
+
+WebBrowser.maybeCompleteAuthSession();
+
+const BG = '#f5f4f0';
+
+const SOCIAL = [
+  { strategy: 'oauth_google' as OAuthStrategy, label: 'Continue with Google', icon: 'google', iconColor: '#4285F4' },
+  { strategy: 'oauth_facebook' as OAuthStrategy, label: 'Continue with Facebook', icon: 'facebook', iconColor: '#1877F2' },
+  { strategy: 'oauth_x' as OAuthStrategy, label: 'Continue with X', icon: 'twitter', iconColor: '#000' },
+];
 
 function makeUsername(email: string) {
-  const base = email
-    .split("@")[0]
-    .replace(/[^a-zA-Z0-9]/g, "")
-    .toLowerCase()
-    .slice(0, 15);
-  const suffix = Math.random().toString(36).slice(2, 6);
-  return base + suffix;
+  const base = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '').toLowerCase().slice(0, 15);
+  return base + Math.random().toString(36).slice(2, 6);
 }
 
 export default function SignUp() {
   const { signUp, setActive, isLoaded } = useSignUp();
   const { isSignedIn, isLoaded: authLoaded } = useAuth();
+  const { startSSOFlow } = useSSO();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [tab, setTab] = useState<'email' | 'phone'>('email');
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [code, setCode] = useState("");
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [code, setCode] = useState('');
   const [pendingVerification, setPendingVerification] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [ssoLoading, setSsoLoading] = useState<OAuthStrategy | null>(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    console.log("[signup] auth change", { authLoaded, isSignedIn });
-    if (authLoaded && isSignedIn) {
-      console.log("[signup] navigating to tabs because isSignedIn is true");
-      router.replace("/(tabs)/");
-    }
+    if (authLoaded && isSignedIn) router.replace('/(tabs)/');
   }, [authLoaded, isSignedIn]);
 
   const handleSignUp = async () => {
     if (!isLoaded || !signUp) return;
-    if (!email.trim() || !password) {
-      setError("Email and password are required.");
-      return;
-    }
+    if (!email.trim() || !password) { setError('Email and password are required.'); return; }
+    if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
+    if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
 
     setLoading(true);
-    setError("");
+    setError('');
+    const [firstName, ...rest] = fullName.trim().split(' ');
+    const lastName = rest.join(' ') || undefined;
+
     try {
       await signUp.create({
         emailAddress: email.trim(),
         password,
         username: makeUsername(email.trim()),
+        firstName: firstName || undefined,
+        lastName,
       });
-      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
       setPendingVerification(true);
     } catch (err: any) {
-      // If username is not required by the instance, retry without it
-      if (
-        err?.errors?.[0]?.code === "form_identifier_exists" ||
-        err?.errors?.[0]?.meta?.paramName === "username"
-      ) {
+      if (err?.errors?.[0]?.meta?.paramName === 'username') {
         try {
-          await signUp.create({ emailAddress: email.trim(), password });
-          await signUp.prepareEmailAddressVerification({
-            strategy: "email_code",
-          });
+          await signUp.create({ emailAddress: email.trim(), password, firstName: firstName || undefined, lastName });
+          await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
           setPendingVerification(true);
           return;
         } catch (retryErr: any) {
-          const msg =
-            retryErr?.errors?.[0]?.longMessage ??
-            retryErr?.errors?.[0]?.message ??
-            retryErr?.message ??
-            "Sign-up failed.";
-          setError(msg);
+          setError(retryErr?.errors?.[0]?.longMessage ?? retryErr?.message ?? 'Sign-up failed.');
           return;
         }
       }
-      const msg =
-        err?.errors?.[0]?.longMessage ??
-        err?.errors?.[0]?.message ??
-        err?.message ??
-        "Sign-up failed.";
-      setError(msg);
+      setError(err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ?? err?.message ?? 'Sign-up failed.');
     } finally {
       setLoading(false);
     }
   };
 
-  const completeSignUp = async (
-    resource: Awaited<
-      ReturnType<typeof signUp.attemptEmailAddressVerification>
-    >,
-  ) => {
-    if (resource.status === "complete") {
-      console.log(
-        "[signup] verification complete, createdSessionId=",
-        resource.createdSessionId,
-      );
-      const res = await setActive({ session: resource.createdSessionId });
-      console.log("[signup] setActive result=", res);
+  const completeSignUp = async (resource: any): Promise<void> => {
+    if (resource.status === 'complete') {
+      await setActive({ session: resource.createdSessionId });
       return;
     }
-
-    // Clerk signals missing_requirements when the instance needs extra fields
-    // (e.g. username). Attempt to satisfy them automatically.
-    if (resource.status === "missing_requirements") {
-      const missing: string[] = (resource as any).missingFields ?? [];
-
+    if (resource.status === 'missing_requirements') {
+      const missing: string[] = resource.missingFields ?? [];
       const patch: Record<string, string> = {};
-      if (missing.includes("username")) patch.username = makeUsername(email);
-      if (missing.includes("first_name")) patch.firstName = "User";
-      if (missing.includes("last_name")) patch.lastName = "Account";
-
-      if (Object.keys(patch).length > 0) {
-        const updated = await signUp!.update(patch as any);
-        return completeSignUp(updated);
-      }
-
-      Alert.alert(
-        "Additional info required",
-        `Missing: ${missing.join(", ")}. Please contact support.`,
-      );
+      if (missing.includes('username')) patch.username = makeUsername(email);
+      if (missing.includes('first_name')) patch.firstName = 'User';
+      if (missing.includes('last_name')) patch.lastName = 'Account';
+      if (Object.keys(patch).length > 0) return completeSignUp(await signUp!.update(patch as any));
+      Alert.alert('Additional info required', `Missing: ${missing.join(', ')}.`);
       return;
     }
-
-    Alert.alert(
-      "Unexpected status",
-      `Status: ${resource.status}. Please try again.`,
-    );
+    Alert.alert('Unexpected status', `Status: ${resource.status}. Please try again.`);
   };
 
   const handleVerify = async () => {
-    if (!isLoaded) {
-      Alert.alert("Not ready", "Please wait a moment and try again.");
-      return;
-    }
-    if (!signUp) {
-      Alert.alert("Session expired", "Please start sign-up again.");
-      setPendingVerification(false);
-      return;
-    }
-
-    const trimmed = code.replace(/\s/g, "");
-    if (trimmed.length < 6) {
-      setError("Enter the full 6-digit code from your email.");
-      return;
-    }
-
+    if (!isLoaded || !signUp) { Alert.alert('Session expired', 'Please start sign-up again.'); return; }
+    const trimmed = code.replace(/\s/g, '');
+    if (trimmed.length < 6) { setError('Enter the full 6-digit code from your email.'); return; }
     setLoading(true);
-    setError("");
+    setError('');
     try {
-      const result = await signUp.attemptEmailAddressVerification({
-        code: trimmed,
-      });
+      const result = await signUp.attemptEmailAddressVerification({ code: trimmed });
       await completeSignUp(result);
     } catch (err: any) {
-      const msg =
-        err?.errors?.[0]?.longMessage ??
-        err?.errors?.[0]?.message ??
-        err?.message ??
-        "Verification failed. Check the code and try again.";
-      setError(msg);
+      setError(err?.errors?.[0]?.longMessage ?? err?.message ?? 'Verification failed. Check the code.');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSSO = async (strategy: OAuthStrategy) => {
+    if (ssoLoading) return;
+    setSsoLoading(strategy);
+    try {
+      const redirectUrl = AuthSession.makeRedirectUri({ path: 'sso-callback' });
+      const { createdSessionId, setActive: sa } = await startSSOFlow({ strategy, redirectUrl });
+      if (createdSessionId && sa) await sa({ session: createdSessionId });
+    } catch (err: any) {
+      Alert.alert('Login failed', err?.errors?.[0]?.longMessage ?? err?.message ?? 'Social login failed.');
+    } finally {
+      setSsoLoading(null);
+    }
+  };
+
+  // ── Verification screen ──
+  if (pendingVerification) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+            <View style={styles.logoRow}>
+              <View style={styles.logoBox}>
+                <Text style={styles.logoIcon}>₹</Text>
+              </View>
+              <Text style={styles.appName}>UPI Tracker</Text>
+            </View>
+
+            <View style={styles.verifyIconWrap}>
+              <MaterialCommunityIcons name="email-check-outline" size={48} color="#111827" />
+            </View>
+            <Text style={styles.title}>Check your email</Text>
+            <Text style={styles.subtitle}>
+              We sent a 6-digit code to{'\n'}
+              <Text style={{ fontWeight: '700', color: '#111827' }}>{email}</Text>
+            </Text>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>VERIFICATION CODE</Text>
+              <RNTextInput
+                style={[styles.input, { letterSpacing: 6, textAlign: 'center', fontSize: 22 }]}
+                value={code}
+                onChangeText={setCode}
+                placeholder="000000"
+                placeholderTextColor="#c4c4c4"
+                keyboardType="number-pad"
+                maxLength={6}
+                autoFocus
+              />
+            </View>
+
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+            <TouchableOpacity
+              style={[styles.submitBtn, loading && styles.submitBtnMuted]}
+              onPress={handleVerify}
+              disabled={loading}
+            >
+              {loading
+                ? <ActivityIndicator color="#6b7280" size="small" />
+                : <Text style={styles.submitBtnText}>Verify email</Text>
+              }
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.footer} onPress={handleSignUp}>
+              <Text style={styles.footerText}>Didn't receive a code? </Text>
+              <Text style={styles.footerLink}>Resend</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Main sign-up screen ──
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        style={styles.inner}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <View style={styles.heroSection}>
-          <View style={styles.logoBox}>
-            <MaterialCommunityIcons
-              name="bank-transfer"
-              size={40}
-              color="#fff"
-            />
-          </View>
-          <Text variant="headlineMedium" style={styles.appName}>
-            UPI Tracker
-          </Text>
-          <Text variant="bodyMedium" style={styles.tagline}>
-            Your personal expense tracker
-          </Text>
-        </View>
-
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
-          contentContainerStyle={styles.card}
+          contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {!pendingVerification ? (
-            <>
-              <Text variant="titleLarge" style={styles.formTitle}>
-                Create account
-              </Text>
-              <Text variant="bodySmall" style={styles.formSub}>
-                Start tracking your UPI payments
-              </Text>
+          {/* Logo */}
+          <View style={styles.logoRow}>
+            <View style={styles.logoBox}>
+              <Text style={styles.logoIcon}>₹</Text>
+            </View>
+            <Text style={styles.appName}>UPI Tracker</Text>
+          </View>
 
-              <TextInput
-                label="Email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                mode="outlined"
-                style={styles.input}
-                left={<TextInput.Icon icon="email-outline" />}
-              />
-              <TextInput
-                label="Password"
+          {/* Heading */}
+          <Text style={styles.title}>Create your account</Text>
+          <Text style={styles.subtitle}>Sign up in seconds. Your data stays on-device.</Text>
+
+          {/* Social buttons */}
+          <View style={styles.socialGroup}>
+            {SOCIAL.map(({ strategy, label, icon, iconColor }) => (
+              <TouchableOpacity
+                key={strategy}
+                style={styles.socialBtn}
+                onPress={() => handleSSO(strategy)}
+                disabled={ssoLoading !== null}
+                activeOpacity={0.7}
+              >
+                {ssoLoading === strategy
+                  ? <ActivityIndicator size={16} color="#6b7280" />
+                  : <MaterialCommunityIcons name={icon as any} size={18} color={iconColor} />
+                }
+                <Text style={styles.socialBtnText}>{label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* OR divider */}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>OR</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Email / Phone toggle */}
+          <View style={styles.tabToggle}>
+            {(['email', 'phone'] as const).map((t) => (
+              <TouchableOpacity
+                key={t}
+                style={[styles.tabBtn, tab === t && styles.tabBtnActive]}
+                onPress={() => setTab(t)}
+              >
+                <Text style={[styles.tabBtnText, tab === t && styles.tabBtnTextActive]}>
+                  {t === 'email' ? 'Email' : 'Phone'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Full Name */}
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>FULL NAME</Text>
+            <RNTextInput
+              style={styles.input}
+              value={fullName}
+              onChangeText={setFullName}
+              placeholder="Aarav Kapoor"
+              placeholderTextColor="#c4c4c4"
+              autoCapitalize="words"
+              autoComplete="name"
+            />
+          </View>
+
+          {/* Email */}
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>EMAIL</Text>
+            <RNTextInput
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              placeholder="you@example.com"
+              placeholderTextColor="#c4c4c4"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+            />
+          </View>
+
+          {/* Password */}
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>PASSWORD</Text>
+            <View style={styles.inputRow}>
+              <RNTextInput
+                style={styles.inputFlex}
                 value={password}
                 onChangeText={setPassword}
+                placeholder="At least 8 characters"
+                placeholderTextColor="#c4c4c4"
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
-                mode="outlined"
-                style={styles.input}
-                left={<TextInput.Icon icon="lock-outline" />}
-                right={
-                  <TextInput.Icon
-                    icon={showPassword ? "eye-off" : "eye"}
-                    onPress={() => setShowPassword((v) => !v)}
-                  />
-                }
               />
-
-              <Button
-                mode="contained"
-                onPress={handleSignUp}
-                loading={loading}
-                disabled={loading}
-                style={styles.btn}
-                contentStyle={styles.btnContent}
-                labelStyle={styles.btnLabel}
-              >
-                {loading ? "Creating account..." : "Create Account"}
-              </Button>
-
-              <View style={styles.footer}>
-                <Text variant="bodyMedium" style={styles.footerText}>
-                  Already have an account?{" "}
-                </Text>
-                <TouchableOpacity onPress={() => router.back()}>
-                  <Text style={styles.link}>Sign in</Text>
-                </TouchableOpacity>
-              </View>
-
-              <SocialAuthButtons mode="sign-up" />
-            </>
-          ) : (
-            <>
-              <View style={styles.verifyIcon}>
-                <MaterialCommunityIcons
-                  name="email-check-outline"
-                  size={36}
-                  color="#6200ee"
-                />
-              </View>
-              <Text variant="titleLarge" style={styles.formTitle}>
-                Verify your email
-              </Text>
-              <Text variant="bodyMedium" style={styles.formSub}>
-                We sent a 6-digit code to{"\n"}
-                <Text style={styles.emailHighlight}>{email}</Text>
-              </Text>
-
-              <TextInput
-                label="Verification code"
-                value={code}
-                onChangeText={setCode}
-                keyboardType="number-pad"
-                mode="outlined"
-                style={styles.input}
-                maxLength={6}
-                left={<TextInput.Icon icon="shield-check-outline" />}
-                autoFocus
-              />
-
-              <Button
-                mode="contained"
-                onPress={handleVerify}
-                loading={loading}
-                disabled={loading}
-                style={styles.btn}
-                contentStyle={styles.btnContent}
-                labelStyle={styles.btnLabel}
-              >
-                {loading ? "Verifying..." : "Verify Email"}
-              </Button>
-
-              <TouchableOpacity style={styles.resend} onPress={handleSignUp}>
-                <Text style={styles.link}>Resend code</Text>
+              <TouchableOpacity onPress={() => setShowPassword(v => !v)} style={styles.showBtn}>
+                <Text style={styles.showBtnText}>{showPassword ? 'Hide' : 'Show'}</Text>
               </TouchableOpacity>
-            </>
-          )}
+            </View>
+          </View>
+
+          {/* Confirm Password */}
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>CONFIRM PASSWORD</Text>
+            <View style={styles.inputRow}>
+              <RNTextInput
+                style={styles.inputFlex}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholder="Repeat password"
+                placeholderTextColor="#c4c4c4"
+                secureTextEntry={!showConfirm}
+                autoCapitalize="none"
+              />
+              <TouchableOpacity onPress={() => setShowConfirm(v => !v)} style={styles.showBtn}>
+                <Text style={styles.showBtnText}>{showConfirm ? 'Hide' : 'Show'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+          {/* Create account button */}
+          <TouchableOpacity
+            style={[styles.submitBtn, loading && styles.submitBtnMuted]}
+            onPress={handleSignUp}
+            disabled={loading}
+            activeOpacity={0.8}
+          >
+            {loading
+              ? <ActivityIndicator color="#6b7280" size="small" />
+              : <Text style={styles.submitBtnText}>Create account</Text>
+            }
+          </TouchableOpacity>
+
+          {/* Footer */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Already have an account? </Text>
+            <TouchableOpacity onPress={() => router.back()}>
+              <Text style={styles.footerLink}>Sign in</Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
-
-      <Snackbar
-        visible={!!error}
-        onDismiss={() => setError("")}
-        duration={8000}
-        style={styles.errorSnack}
-        action={{ label: "OK", onPress: () => setError("") }}
-      >
-        {error}
-      </Snackbar>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#6200ee" },
-  inner: { flex: 1, justifyContent: "flex-end" },
+  container: { flex: 1, backgroundColor: BG },
+  scroll: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 32 },
 
-  heroSection: { alignItems: "center", paddingVertical: 32, gap: 8 },
+  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 32 },
   logoBox: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 4,
+    width: 44, height: 44, borderRadius: 12, backgroundColor: '#111827',
+    justifyContent: 'center', alignItems: 'center',
   },
-  appName: { color: "#fff", fontWeight: "bold" },
-  tagline: { color: "rgba(255,255,255,0.75)" },
+  logoIcon: { color: '#fff', fontSize: 20, fontWeight: '800' },
+  appName: { fontSize: 17, fontWeight: '700', color: '#111827' },
 
-  card: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 28,
-    paddingBottom: 24,
-    gap: 12,
+  verifyIconWrap: { alignItems: 'center', marginBottom: 20, marginTop: 20 },
+  title: { fontSize: 30, fontWeight: '800', color: '#111827', marginBottom: 8, letterSpacing: -0.5 },
+  subtitle: { fontSize: 14, color: '#9ca3af', lineHeight: 20, marginBottom: 28 },
+
+  socialGroup: { gap: 10, marginBottom: 24 },
+  socialBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12,
+    backgroundColor: '#fff', paddingVertical: 13,
   },
-  formTitle: { fontWeight: "bold", color: "#1a1a1a" },
-  formSub: { color: "#888", marginTop: -6, lineHeight: 20 },
-  emailHighlight: { color: "#6200ee", fontWeight: "600" },
+  socialBtnText: { fontSize: 14, fontWeight: '600', color: '#111827' },
 
-  verifyIcon: { alignItems: "center", marginBottom: 4 },
+  divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#e5e7eb' },
+  dividerText: { fontSize: 12, color: '#9ca3af', fontWeight: '600', letterSpacing: 0.5 },
 
-  input: { backgroundColor: "#fff" },
-
-  btn: { borderRadius: 10, marginTop: 4 },
-  btnContent: { paddingVertical: 6 },
-  btnLabel: { fontSize: 15, fontWeight: "600" },
-
-  footer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingTop: 4,
+  tabToggle: {
+    flexDirection: 'row', backgroundColor: '#e9e8e4', borderRadius: 10,
+    padding: 3, marginBottom: 22,
   },
-  footerText: { color: "#666" },
-  link: { color: "#6200ee", fontWeight: "600", fontSize: 14 },
-  resend: { alignItems: "center" },
+  tabBtn: { flex: 1, paddingVertical: 9, borderRadius: 8, alignItems: 'center' },
+  tabBtnActive: {
+    backgroundColor: '#fff',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08, shadowRadius: 2, elevation: 2,
+  },
+  tabBtnText: { fontSize: 14, fontWeight: '600', color: '#9ca3af' },
+  tabBtnTextActive: { color: '#111827' },
 
-  errorSnack: { backgroundColor: "#b00020" },
+  fieldGroup: { marginBottom: 14 },
+  fieldLabel: { fontSize: 11, fontWeight: '700', color: '#9ca3af', letterSpacing: 0.8, marginBottom: 6 },
+  input: {
+    backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e7eb',
+    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13,
+    fontSize: 15, color: '#111827',
+  },
+  inputRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e7eb',
+    borderRadius: 12, paddingLeft: 14,
+  },
+  inputFlex: { flex: 1, paddingVertical: 13, fontSize: 15, color: '#111827' },
+  showBtn: { paddingHorizontal: 14, paddingVertical: 13 },
+  showBtnText: { fontSize: 13, fontWeight: '600', color: '#6b7280' },
+
+  errorText: { color: '#dc2626', fontSize: 13, marginBottom: 12 },
+
+  submitBtn: {
+    borderWidth: 1.5, borderColor: '#d1d5db', borderRadius: 12,
+    paddingVertical: 15, alignItems: 'center', backgroundColor: '#fff', marginBottom: 20,
+  },
+  submitBtnMuted: { opacity: 0.6 },
+  submitBtnText: { fontSize: 15, fontWeight: '700', color: '#111827' },
+
+  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
+  footerText: { fontSize: 14, color: '#9ca3af' },
+  footerLink: { fontSize: 14, fontWeight: '700', color: '#111827' },
 });

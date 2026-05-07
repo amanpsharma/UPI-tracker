@@ -1,374 +1,263 @@
 import { useCallback, useState } from 'react';
-import { View, ScrollView, StyleSheet, RefreshControl, Dimensions, TouchableOpacity } from 'react-native';
-import { Text, Surface, ActivityIndicator, Portal, Dialog, TextInput, Button } from 'react-native-paper';
+import { View, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Alert } from 'react-native';
+import { Text, ActivityIndicator } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
-import { format, subDays, eachDayOfInterval } from 'date-fns';
+import { useFocusEffect, router } from 'expo-router';
+import { format } from 'date-fns';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { BarChart } from 'react-native-gifted-charts';
+import { PieChart } from 'react-native-gifted-charts';
 import { api } from '@/services/api';
-import { CATEGORY_COLORS, CATEGORY_ICONS, CATEGORIES } from '@/constants';
+import { CATEGORY_COLORS, CATEGORY_ICONS } from '@/constants';
 import { Stats, Category } from '@/types';
-import { getBudgets, saveBudgets, Budgets } from '@/services/budgetStorage';
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
+const BG = '#f5f4f0';
 
-type TrendPoint = {
-  value: number;
-  label?: string;
-  frontColor: string;
-  minHeight?: number;
-  topLabelComponent?: () => React.ReactNode;
-  onPress?: () => void;
+const CAT_DISPLAY: Partial<Record<Category, string>> = {
+  Food: 'Food & Dining',
+  Bills: 'Bills & Utilities',
+  Transport: 'Transport',
+  Shopping: 'Shopping',
+  Entertainment: 'Entertainment',
+  Health: 'Health',
+  Other: 'Other',
 };
-type TrendDays = 7 | 30;
 
-function fmtAmount(n: number): string {
+function fmtShort(n: number): string {
   if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
-  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}K`;
+  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}k`;
   return `₹${Math.round(n)}`;
 }
 
-export default function StatsScreen() {
+export default function InsightsScreen() {
   const [stats, setStats] = useState<Stats | null>(null);
-  const [budgets, setBudgets] = useState<Budgets | null>(null);
-  const [trend, setTrend] = useState<TrendPoint[]>([]);
-  const [trendDays, setTrendDays] = useState<TrendDays>(30);
-  const [selectedBar, setSelectedBar] = useState<{ date: string; total: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [budgetInput, setBudgetInput] = useState('');
   const [error, setError] = useState('');
-
-  const buildTrend = (
-    raw: { date: string; total: number }[],
-    days: TrendDays,
-    onSelect: (date: string, total: number) => void,
-  ): TrendPoint[] => {
-    const map: Record<string, number> = {};
-    raw.forEach((r) => { map[r.date] = r.total; });
-    const interval = eachDayOfInterval({ start: subDays(new Date(), days - 1), end: new Date() });
-    return interval.map((d, i) => {
-      const key = format(d, 'yyyy-MM-dd');
-      const val = map[key] ?? 0;
-      const showLabel = days === 7 || i === 0 || i === interval.length - 1 || (i + 1) % 7 === 0;
-      return {
-        value: val,
-        label: showLabel ? format(d, days === 7 ? 'EEE' : 'd') : '',
-        frontColor: val > 0 ? '#6200ee' : '#e8e0ff',
-        minHeight: val > 0 ? 4 : 0,
-        topLabelComponent: days === 7 && val > 0
-          ? () => <Text style={styles.barLabel}>{fmtAmount(val)}</Text>
-          : undefined,
-        onPress: val > 0 ? () => onSelect(format(d, 'dd MMM'), val) : undefined,
-      };
-    });
-  };
 
   const load = useCallback(async () => {
     try {
       setError('');
-      const [s, b, t] = await Promise.all([api.getStats(), getBudgets(), api.getTrend(trendDays)]);
+      const s = await api.getStats();
       setStats(s);
-      setBudgets(b);
-      setSelectedBar(null);
-      setTrend(buildTrend(t, trendDays, (date, total) => setSelectedBar({ date, total })));
     } catch (err: any) {
-      setError(err.message ?? 'Failed to load stats.');
+      setError(err.message ?? 'Failed to load insights.');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [trendDays]);
+  }, []);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
-
+  useFocusEffect(useCallback(() => { setLoading(true); load(); }, [load]));
   const onRefresh = () => { setRefreshing(true); load(); };
-
-  const openBudgetDialog = (category: Category, current: number) => {
-    setEditingCategory(category);
-    setBudgetInput(current > 0 ? String(current) : '');
-  };
-
-  const saveBudget = async () => {
-    if (!editingCategory || !budgets) return;
-    const val = parseFloat(budgetInput) || 0;
-    const updated = { ...budgets, [editingCategory]: val };
-    await saveBudgets(updated);
-    setBudgets(updated);
-    setEditingCategory(null);
-  };
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.center}>
-        <ActivityIndicator size="large" color="#6200ee" />
+      <SafeAreaView style={styles.container}>
+        <View style={styles.center}>
+          <ActivityIndicator color="#111827" />
+        </View>
       </SafeAreaView>
     );
   }
 
-  if (error || !budgets) {
+  if (error) {
     return (
-      <SafeAreaView style={styles.center}>
-        <MaterialCommunityIcons name="wifi-off" size={40} color="#ddd" />
-        <Text style={styles.errorText}>{error || 'Could not load stats.'}</Text>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.center}>
+          <MaterialCommunityIcons name="wifi-off" size={40} color="#e5e7eb" />
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
       </SafeAreaView>
     );
   }
 
-  const spendMap: Partial<Record<Category, number>> = {};
-  stats?.byCategory.forEach((c) => { spendMap[c._id] = c.total; });
+  const totalSpent = stats?.thisMonth.total ?? 0;
+  const byCategory = stats?.byCategory ?? [];
+
+  // Build pie data — only categories with spending
+  const catData = byCategory
+    .filter((c) => c.total > 0)
+    .sort((a, b) => b.total - a.total);
+
+  const pieData = catData.map((c) => ({
+    value: c.total,
+    color: CATEGORY_COLORS[c._id] ?? '#A0A0A0',
+    focused: false,
+  }));
 
   const monthLabel = format(new Date(), 'MMMM yyyy');
-
-  // Total budget vs spent (only for categories that have a budget set)
-  const totalBudget = CATEGORIES.reduce((s, c) => s + (budgets[c] ?? 0), 0);
-  const totalSpent = stats?.thisMonth.total ?? 0;
-  const budgetRemaining = totalBudget - totalSpent;
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6200ee" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#111827" />}
       >
-        <Text variant="headlineSmall" style={styles.heading}>Spending Stats</Text>
-
-        {/* Summary cards */}
-        <View style={styles.row}>
-          <Surface style={[styles.statCard, { backgroundColor: '#6200ee' }]} elevation={2}>
-            <MaterialCommunityIcons name="calendar-month" size={18} color="rgba(255,255,255,0.7)" />
-            <Text style={styles.cardLabel}>{monthLabel}</Text>
-            <Text style={styles.cardAmount}>₹{(stats?.thisMonth.total ?? 0).toLocaleString('en-IN')}</Text>
-            <Text style={styles.cardCount}>{stats?.thisMonth.count ?? 0} payments</Text>
-          </Surface>
-
-          <Surface style={[styles.statCard, { backgroundColor: '#455a64' }]} elevation={2}>
-            <MaterialCommunityIcons name="history" size={18} color="rgba(255,255,255,0.7)" />
-            <Text style={styles.cardLabel}>All time</Text>
-            <Text style={styles.cardAmount}>₹{(stats?.allTime.total ?? 0).toLocaleString('en-IN')}</Text>
-            <Text style={styles.cardCount}>{stats?.allTime.count ?? 0} payments</Text>
-          </Surface>
-        </View>
-
-        {/* Spending Trend Chart */}
-        <Surface style={styles.chartCard} elevation={1}>
-          <View style={styles.chartHeader}>
-            <Text variant="titleSmall" style={styles.sectionTitle}>Spending Trend</Text>
-            <View style={styles.trendToggle}>
-              {([7, 30] as TrendDays[]).map((d) => (
-                <TouchableOpacity
-                  key={d}
-                  style={[styles.trendChip, trendDays === d && styles.trendChipActive]}
-                  onPress={() => setTrendDays(d)}
-                >
-                  <Text style={[styles.trendChipText, trendDays === d && styles.trendChipTextActive]}>
-                    {d}D
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.title}>Insights</Text>
+            <Text style={styles.subtitle}>{monthLabel}</Text>
           </View>
-          {trendDays === 30 && selectedBar && (
-            <View style={styles.barTooltip}>
-              <MaterialCommunityIcons name="calendar-today" size={13} color="#6200ee" />
-              <Text style={styles.barTooltipText}>
-                {selectedBar.date} — <Text style={{ fontWeight: '700' }}>{fmtAmount(selectedBar.total)}</Text>
-              </Text>
-            </View>
-          )}
-          {trend.length > 0 ? (
-            <BarChart
-              data={trend}
-              width={SCREEN_WIDTH - 48}
-              height={180}
-              maxValue={Math.max(...trend.map((t) => t.value), 1) * (trendDays === 7 ? 1.4 : 1.1)}
-              barWidth={trendDays === 7 ? 32 : 6}
-              spacing={trendDays === 7 ? 10 : 3}
-              initialSpacing={trendDays === 7 ? 6 : 4}
-              noOfSections={3}
-              hideRules
-              hideYAxisText
-              yAxisLabelWidth={0}
-              xAxisThickness={0}
-              yAxisThickness={0}
-              barBorderRadius={4}
-              labelWidth={trendDays === 7 ? 42 : 12}
-              xAxisLabelTextStyle={{ fontSize: 9, color: '#aaa' }}
-              topLabelContainerStyle={styles.barLabelContainer}
-              isAnimated
-            />
-          ) : (
-            <View style={styles.chartEmpty}>
-              <Text style={{ color: '#ccc', fontSize: 13 }}>No spending data yet</Text>
-            </View>
-          )}
-        </Surface>
-
-        {/* Overall budget summary */}
-        {totalBudget > 0 && (
-          <Surface style={styles.budgetSummary} elevation={1}>
-            <View style={styles.budgetSummaryRow}>
-              <Text variant="bodyMedium" style={{ fontWeight: '600', color: '#333' }}>Monthly budget</Text>
-              <Text
-                variant="bodyMedium"
-                style={{ fontWeight: '700', color: budgetRemaining < 0 ? '#b00020' : '#2e7d32' }}
-              >
-                {budgetRemaining < 0
-                  ? `₹${Math.abs(budgetRemaining).toLocaleString('en-IN')} over`
-                  : `₹${budgetRemaining.toLocaleString('en-IN')} left`}
-              </Text>
-            </View>
-            <View style={styles.barTrack}>
-              <View
-                style={[
-                  styles.barFill,
-                  {
-                    width: `${Math.min((totalSpent / totalBudget) * 100, 100)}%`,
-                    backgroundColor: budgetRemaining < 0 ? '#b00020' : '#6200ee',
-                  },
-                ]}
-              />
-            </View>
-            <Text style={styles.budgetMeta}>
-              ₹{totalSpent.toLocaleString('en-IN')} of ₹{totalBudget.toLocaleString('en-IN')}
-            </Text>
-          </Surface>
-        )}
-
-        {/* Per-category budget */}
-        <View style={styles.sectionHeader}>
-          <Text variant="titleSmall" style={styles.sectionTitle}>Budget vs Spending</Text>
-          <Text variant="bodySmall" style={styles.hint}>Tap amount to set budget</Text>
+          <TouchableOpacity
+            style={styles.gearBtn}
+            onPress={() => router.push('/(tabs)/settings')}
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons name="cog-outline" size={22} color="#6b7280" />
+          </TouchableOpacity>
         </View>
 
-        {CATEGORIES.map((cat) => {
-          const spent = spendMap[cat] ?? 0;
-          const budget = budgets[cat] ?? 0;
-          const hasBudget = budget > 0;
-          const pct = hasBudget ? Math.min((spent / budget) * 100, 100) : (spent > 0 ? 100 : 0);
-          const over = hasBudget && spent > budget;
-          const barColor = over ? '#b00020' : hasBudget ? CATEGORY_COLORS[cat] : '#ddd';
+        {/* Donut card */}
+        <View style={styles.donutCard}>
+          <Text style={styles.totalLabel}>TOTAL SPENT</Text>
+          <Text style={styles.totalAmount}>-{fmtShort(totalSpent)}</Text>
 
-          return (
-            <View key={cat} style={styles.catBlock}>
-              <View style={styles.catHeader}>
-                <View style={styles.catLabel}>
-                  <View style={[styles.catIcon, { backgroundColor: CATEGORY_COLORS[cat] }]}>
-                    <MaterialCommunityIcons name={CATEGORY_ICONS[cat] as any} size={13} color="#fff" />
+          {pieData.length > 0 ? (
+            <View style={styles.chartRow}>
+              {/* Donut */}
+              <PieChart
+                data={pieData}
+                donut
+                radius={78}
+                innerRadius={52}
+                centerLabelComponent={() => (
+                  <View style={styles.centerLabel}>
+                    <Text style={styles.centerLabelTop}>This month</Text>
+                    <Text style={styles.centerLabelAmt}>-{fmtShort(totalSpent)}</Text>
                   </View>
-                  <Text variant="bodyMedium" style={styles.catName}>{cat}</Text>
-                  {over && <MaterialCommunityIcons name="alert-circle" size={13} color="#b00020" />}
-                </View>
-                <View style={styles.catAmounts}>
-                  <Text variant="bodySmall" style={{ color: over ? '#b00020' : '#333', fontWeight: '600' }}>
-                    ₹{spent.toLocaleString('en-IN')}
-                  </Text>
-                  <Text
-                    variant="bodySmall"
-                    style={styles.budgetTap}
-                    onPress={() => openBudgetDialog(cat, budget)}
-                  >
-                    {hasBudget ? ` / ₹${budget.toLocaleString('en-IN')}` : '  + Budget'}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.barTrack}>
-                <View style={[styles.barFill, { width: `${pct}%`, backgroundColor: barColor }]} />
+                )}
+              />
+
+              {/* Legend */}
+              <View style={styles.legend}>
+                {catData.map((c) => {
+                  const pct = totalSpent > 0 ? Math.round((c.total / totalSpent) * 100) : 0;
+                  return (
+                    <View key={c._id} style={styles.legendRow}>
+                      <View style={[styles.legendDot, { backgroundColor: CATEGORY_COLORS[c._id] ?? '#A0A0A0' }]} />
+                      <Text style={styles.legendName} numberOfLines={1}>
+                        {CAT_DISPLAY[c._id] ?? c._id}
+                      </Text>
+                      <Text style={styles.legendPct}>{pct}%</Text>
+                    </View>
+                  );
+                })}
               </View>
             </View>
-          );
-        })}
+          ) : (
+            <View style={styles.emptyChart}>
+              <MaterialCommunityIcons name="chart-donut-variant" size={48} color="#e5e7eb" />
+              <Text style={styles.emptyText}>No spending this month</Text>
+            </View>
+          )}
+        </View>
 
+        {/* By category section */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionLabel}>BY CATEGORY</Text>
+          <TouchableOpacity onPress={() => Alert.alert('Rules', 'Auto-categorisation rules coming soon.')}>
+            <Text style={styles.rulesLink}>Rules →</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.catCard}>
+          {catData.length === 0 ? (
+            <View style={styles.emptyChart}>
+              <Text style={styles.emptyText}>No transactions this month.</Text>
+            </View>
+          ) : (
+            catData.map((c, idx) => {
+              const pct = totalSpent > 0 ? (c.total / totalSpent) * 100 : 0;
+              const color = CATEGORY_COLORS[c._id] ?? '#A0A0A0';
+              return (
+                <View key={c._id} style={[styles.catRow, idx < catData.length - 1 && styles.catRowBorder]}>
+                  <View style={[styles.catIcon, { backgroundColor: color }]}>
+                    <MaterialCommunityIcons name={CATEGORY_ICONS[c._id] as any} size={14} color="#fff" />
+                  </View>
+                  <View style={styles.catInfo}>
+                    <View style={styles.catTopRow}>
+                      <Text style={styles.catName}>{CAT_DISPLAY[c._id] ?? c._id}</Text>
+                      <View style={styles.catRight}>
+                        <Text style={styles.catAmount}>-{fmtShort(c.total)}</Text>
+                        <Text style={styles.catPct}>{Math.round(pct)}%</Text>
+                      </View>
+                    </View>
+                    <View style={styles.barTrack}>
+                      <View style={[styles.barFill, { width: `${pct}%`, backgroundColor: color }]} />
+                    </View>
+                  </View>
+                </View>
+              );
+            })
+          )}
+        </View>
       </ScrollView>
-
-      <Portal>
-        <Dialog visible={!!editingCategory} onDismiss={() => setEditingCategory(null)}>
-          <Dialog.Title>Budget for {editingCategory}</Dialog.Title>
-          <Dialog.Content>
-            <TextInput
-              label="Monthly limit (₹)"
-              value={budgetInput}
-              onChangeText={setBudgetInput}
-              keyboardType="numeric"
-              mode="outlined"
-              left={<TextInput.Affix text="₹" />}
-              autoFocus
-              placeholder="0"
-            />
-            {budgetInput && parseFloat(budgetInput) > 0 && (
-              <Text variant="bodySmall" style={styles.dialogHint}>
-                You'll get a warning when you exceed ₹{parseFloat(budgetInput).toLocaleString('en-IN')}/month.
-              </Text>
-            )}
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setEditingCategory(null)}>Cancel</Button>
-            <Button mode="contained" onPress={saveBudget}>Save</Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1, backgroundColor: BG },
+  scroll: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
-  scroll: { padding: 16, gap: 14 },
-  heading: { fontWeight: 'bold', color: '#6200ee' },
-  errorText: { color: '#b00020', textAlign: 'center', padding: 16 },
+  errorText: { color: '#ef4444', fontSize: 14, textAlign: 'center' },
 
-  row: { flexDirection: 'row', gap: 12 },
-  statCard: { flex: 1, padding: 14, borderRadius: 16, alignItems: 'center', gap: 2 },
-  cardLabel: { color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: '500', marginTop: 4 },
-  cardAmount: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
-  cardCount: { color: 'rgba(255,255,255,0.65)', fontSize: 11 },
-
-  chartCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, gap: 12 },
-  chartHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  trendToggle: { flexDirection: 'row', gap: 6 },
-  trendChip: {
-    paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20,
-    borderWidth: 1, borderColor: '#e5e7eb',
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
+  title: { fontSize: 34, fontWeight: '800', color: '#111827', letterSpacing: -0.5 },
+  subtitle: { fontSize: 13, color: '#9ca3af', fontWeight: '500', marginTop: 2 },
+  gearBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
+    marginTop: 4,
   },
-  trendChipActive: { backgroundColor: '#6200ee', borderColor: '#6200ee' },
-  trendChipText: { fontSize: 12, fontWeight: '600', color: '#888' },
-  trendChipTextActive: { color: '#fff' },
-  chartEmpty: { height: 140, justifyContent: 'center', alignItems: 'center' },
-  barLabelContainer: { justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-  barLabel: { fontSize: 9, color: '#6200ee', fontWeight: '700', textAlign: 'center' },
-  barTooltip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#f3eeff', borderRadius: 8,
-    paddingHorizontal: 10, paddingVertical: 5, alignSelf: 'flex-start',
+
+  donutCard: {
+    backgroundColor: '#fff', borderRadius: 20, padding: 20,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04, shadowRadius: 6, elevation: 2,
+    marginBottom: 20,
   },
-  barTooltipText: { fontSize: 12, color: '#6200ee' },
+  totalLabel: { fontSize: 11, fontWeight: '700', color: '#9ca3af', letterSpacing: 1, marginBottom: 4 },
+  totalAmount: { fontSize: 28, fontWeight: '800', color: '#111827', letterSpacing: -0.5, marginBottom: 20 },
 
-  budgetSummary: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 16,
-    gap: 8,
+  chartRow: { flexDirection: 'row', alignItems: 'center', gap: 20 },
+
+  centerLabel: { alignItems: 'center' },
+  centerLabelTop: { fontSize: 9, color: '#9ca3af', fontWeight: '500', textAlign: 'center' },
+  centerLabelAmt: { fontSize: 13, fontWeight: '700', color: '#111827', textAlign: 'center' },
+
+  legend: { flex: 1, gap: 10 },
+  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  legendDot: { width: 9, height: 9, borderRadius: 3, flexShrink: 0 },
+  legendName: { flex: 1, fontSize: 12, color: '#374151', fontWeight: '500' },
+  legendPct: { fontSize: 12, color: '#9ca3af', fontWeight: '600' },
+
+  emptyChart: { alignItems: 'center', paddingVertical: 32, gap: 10 },
+  emptyText: { color: '#9ca3af', fontSize: 14 },
+
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  sectionLabel: { fontSize: 11, fontWeight: '700', color: '#9ca3af', letterSpacing: 1 },
+  rulesLink: { fontSize: 13, fontWeight: '700', color: '#111827' },
+
+  catCard: {
+    backgroundColor: '#fff', borderRadius: 20,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04, shadowRadius: 6, elevation: 2,
+    overflow: 'hidden',
   },
-  budgetSummaryRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  budgetMeta: { color: '#aaa', fontSize: 12, textAlign: 'right' },
-
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sectionTitle: { fontWeight: '600', color: '#333' },
-  hint: { color: '#aaa' },
-
-  catBlock: { gap: 6, backgroundColor: '#fff', borderRadius: 12, padding: 12 },
-  catHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  catLabel: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  catIcon: { width: 24, height: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  catName: { color: '#333' },
-  catAmounts: { flexDirection: 'row', alignItems: 'center' },
-  budgetTap: { color: '#6200ee', fontSize: 12 },
-  barTrack: { height: 8, backgroundColor: '#f0f0f0', borderRadius: 4, overflow: 'hidden' },
-  barFill: { height: '100%', borderRadius: 4 },
-
-  dialogHint: { color: '#888', marginTop: 8 },
+  catRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
+  catRowBorder: { borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  catIcon: { width: 34, height: 34, borderRadius: 10, justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  catInfo: { flex: 1, gap: 8 },
+  catTopRow: { flexDirection: 'row', alignItems: 'center' },
+  catName: { flex: 1, fontSize: 14, fontWeight: '600', color: '#111827' },
+  catRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  catAmount: { fontSize: 14, fontWeight: '700', color: '#111827' },
+  catPct: { fontSize: 12, color: '#9ca3af', fontWeight: '500', minWidth: 32, textAlign: 'right' },
+  barTrack: { height: 4, backgroundColor: '#f3f4f6', borderRadius: 2, overflow: 'hidden' },
+  barFill: { height: '100%', borderRadius: 2 },
 });

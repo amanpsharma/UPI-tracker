@@ -65,6 +65,10 @@ export default function RootLayout() {
                 name="edit-transaction"
                 options={{ presentation: "modal", headerShown: false }}
               />
+              <Stack.Screen
+                name="transactions-month"
+                options={{ headerShown: false }}
+              />
             </Stack>
           </PaperProvider>
         </GestureHandlerRootView>
