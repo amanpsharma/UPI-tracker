@@ -73,34 +73,60 @@ router.get("/trend", async (req, res) => {
   }
 });
 
-// GET summary stats
+// GET summary stats (optional ?month=YYYY-MM for historical months)
 router.get("/stats", async (req, res) => {
   try {
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    let year = now.getFullYear();
+    let month = now.getMonth(); // 0-based
 
-    const [totalThisMonth, totalLastMonth, totalAllTime, byCategory] = await Promise.all([
+    if (req.query.month) {
+      const parts = req.query.month.split("-");
+      year = parseInt(parts[0]);
+      month = parseInt(parts[1]) - 1; // convert to 0-based
+    }
+
+    const startOfMonth = new Date(year, month, 1);
+    const endOfMonth = new Date(year, month + 1, 1);
+    const startOfLastMonth = new Date(year, month - 1, 1);
+
+    const isSent = { $or: [{ type: "sent" }, { type: { $exists: false } }] };
+
+    const [sentThisMonth, receivedThisMonth, totalLastMonth, totalAllTime, byCategory] = await Promise.all([
       Transaction.aggregate([
-        { $match: { paidAt: { $gte: startOfMonth } } },
+        { $match: { $and: [{ paidAt: { $gte: startOfMonth, $lt: endOfMonth } }, isSent] } },
         { $group: { _id: null, total: { $sum: "$amount" }, count: { $sum: 1 } } },
       ]),
       Transaction.aggregate([
-        { $match: { paidAt: { $gte: startOfLastMonth, $lt: startOfMonth } } },
+        { $match: { paidAt: { $gte: startOfMonth, $lt: endOfMonth }, type: "received" } },
+        { $group: { _id: null, total: { $sum: "$amount" }, count: { $sum: 1 } } },
+      ]),
+      Transaction.aggregate([
+        { $match: { $and: [{ paidAt: { $gte: startOfLastMonth, $lt: startOfMonth } }, isSent] } },
         { $group: { _id: null, total: { $sum: "$amount" }, count: { $sum: 1 } } },
       ]),
       Transaction.aggregate([
         { $group: { _id: null, total: { $sum: "$amount" }, count: { $sum: 1 } } },
       ]),
       Transaction.aggregate([
-        { $match: { paidAt: { $gte: startOfMonth } } },
+        { $match: { $and: [{ paidAt: { $gte: startOfMonth, $lt: endOfMonth } }, isSent] } },
         { $group: { _id: "$category", total: { $sum: "$amount" }, count: { $sum: 1 } } },
         { $sort: { total: -1 } },
       ]),
     ]);
 
+    const sent = sentThisMonth[0] || { total: 0, count: 0 };
+    const received = receivedThisMonth[0] || { total: 0, count: 0 };
+
     res.json({
-      thisMonth: totalThisMonth[0] || { total: 0, count: 0 },
+      thisMonth: {
+        total: sent.total,
+        count: sent.count,
+        sent: sent.total,
+        received: received.total,
+        sentCount: sent.count,
+        receivedCount: received.count,
+      },
       lastMonth: totalLastMonth[0] || { total: 0, count: 0 },
       allTime: totalAllTime[0] || { total: 0, count: 0 },
       byCategory,
@@ -153,6 +179,16 @@ router.post("/bulk", async (req, res) => {
     res.status(201).json({ inserted: result.upsertedCount ?? 0 });
   } catch (err) {
     console.error("[POST /bulk]", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET total transaction count (all time)
+router.get("/count", async (_req, res) => {
+  try {
+    const count = await Transaction.countDocuments({});
+    res.json({ count });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });

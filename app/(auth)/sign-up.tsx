@@ -91,7 +91,7 @@ export default function SignUp() {
 
   const completeSignUp = async (resource: any): Promise<void> => {
     if (resource.status === 'complete') {
-      await setActive({ session: resource.createdSessionId });
+      if (setActive) await setActive({ session: resource.createdSessionId });
       return;
     }
     if (resource.status === 'missing_requirements') {
@@ -144,10 +144,13 @@ export default function SignUp() {
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
             <View style={styles.logoRow}>
-              <View style={styles.logoBox}>
-                <Text style={styles.logoIcon}>₹</Text>
+              <View style={{ width: 44, height: 44, borderRadius: 10, backgroundColor: '#111827', justifyContent: 'center', alignItems: 'center' }}>
+                <Text style={{ color: '#fff', fontSize: 19, fontWeight: '800' }}>₹</Text>
+                <View style={{ position: 'absolute', bottom: 4, right: 3, backgroundColor: '#22c55e', borderRadius: 4, width: 14, height: 14, justifyContent: 'center', alignItems: 'center' }}>
+                  <MaterialCommunityIcons name="trending-up" size={9} color="#fff" />
+                </View>
               </View>
-              <Text style={styles.appName}>UPI Tracker</Text>
+              <Text style={styles.appName}>upi.tracker</Text>
             </View>
 
             <View style={styles.verifyIconWrap}>
@@ -207,10 +210,13 @@ export default function SignUp() {
         >
           {/* Logo */}
           <View style={styles.logoRow}>
-            <View style={styles.logoBox}>
-              <Text style={styles.logoIcon}>₹</Text>
+            <View style={{ width: 44, height: 44, borderRadius: 10, backgroundColor: '#111827', justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={{ color: '#fff', fontSize: 19, fontWeight: '800' }}>₹</Text>
+              <View style={{ position: 'absolute', bottom: 4, right: 3, backgroundColor: '#22c55e', borderRadius: 4, width: 14, height: 14, justifyContent: 'center', alignItems: 'center' }}>
+                <MaterialCommunityIcons name="trending-up" size={9} color="#fff" />
+              </View>
             </View>
-            <Text style={styles.appName}>UPI Tracker</Text>
+            <Text style={styles.appName}>upi.tracker</Text>
           </View>
 
           {/* Heading */}

@@ -9,9 +9,10 @@ interface Props {
   onDelete: () => void;
   onPress: () => void;
   children: React.ReactNode;
+  stripped?: boolean;
 }
 
-export default function SwipeableRow({ onDelete, onPress, children }: Props) {
+export default function SwipeableRow({ onDelete, onPress, children, stripped }: Props) {
   const ref = useRef<Swipeable>(null);
 
   const handleDelete = () => {
@@ -65,7 +66,7 @@ export default function SwipeableRow({ onDelete, onPress, children }: Props) {
       rightThreshold={40}
     >
       <TouchableOpacity
-        style={styles.card}
+        style={stripped ? styles.plain : styles.card}
         activeOpacity={0.75}
         onPress={onPress}
       >
@@ -105,4 +106,5 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   deleteText: { color: "#fff", fontSize: 12, marginTop: 4, fontWeight: "600" },
+  plain: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff" },
 });

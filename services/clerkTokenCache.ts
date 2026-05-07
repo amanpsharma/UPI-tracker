@@ -1,8 +1,16 @@
-import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { TokenCache } from '@clerk/clerk-expo/dist/cache/types';
 
+// AsyncStorage persists across dev rebuilds on Android.
+// SecureStore gets wiped whenever the APK is reinstalled during development.
 export const tokenCache: TokenCache = {
-  getToken: (key: string) => SecureStore.getItemAsync(key),
-  saveToken: (key: string, value: string) => SecureStore.setItemAsync(key, value),
-  clearToken: (key: string) => SecureStore.deleteItemAsync(key),
+  async getToken(key: string) {
+    return AsyncStorage.getItem(key);
+  },
+  async saveToken(key: string, value: string) {
+    return AsyncStorage.setItem(key, value);
+  },
+  async clearToken(key: string) {
+    return AsyncStorage.removeItem(key);
+  },
 };

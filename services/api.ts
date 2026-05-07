@@ -38,8 +38,10 @@ export const api = {
     return data;
   },
 
-  getStats: async (): Promise<Stats> => {
-    const { data } = await client.get<Stats>('/transactions/stats');
+  getStats: async (month?: string): Promise<Stats> => {
+    const { data } = await client.get<Stats>('/transactions/stats', {
+      params: month ? { month } : undefined,
+    });
     return data;
   },
 
@@ -70,6 +72,11 @@ export const api = {
 
   deleteTransaction: async (id: string): Promise<void> => {
     await client.delete(`/transactions/${id}`);
+  },
+
+  getTransactionCount: async (): Promise<number> => {
+    const { data } = await client.get<{ count: number }>('/transactions/count');
+    return data.count;
   },
 
   getMonthly: async (): Promise<MonthlyData[]> => {

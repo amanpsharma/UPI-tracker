@@ -1,9 +1,10 @@
+import { useCallback } from 'react';
 import { View, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUser, useAuth } from '@clerk/clerk-expo';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 
 const BG = '#f5f4f0';
 
@@ -27,22 +28,46 @@ function getAvatarColor(name: string) {
 }
 
 export default function SettingsScreen() {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const { signOut } = useAuth();
 
-  const displayName = [user?.firstName, user?.lastName].filter(Boolean).join(' ')
+  // Force-refresh user profile every time this tab is opened
+  useFocusEffect(useCallback(() => {
+    user?.reload();
+  }, [user]));
+
+  const emailAddress =
+    user?.emailAddresses?.[0]?.emailAddress
+    ?? user?.primaryEmailAddress?.emailAddress
+    ?? '';
+
+  const displayName =
+    (user?.firstName && user?.lastName
+      ? `${user.firstName} ${user.lastName}`
+      : user?.firstName ?? '')
+    || user?.fullName
     || user?.username
-    || user?.emailAddresses?.[0]?.emailAddress?.split('@')[0]
+    || emailAddress.split('@')[0]
     || 'User';
 
-  const emailAddress = user?.emailAddresses?.[0]?.emailAddress ?? '';
-  const initials = displayName[0]?.toUpperCase() ?? 'U';
-  const av = getAvatarColor(displayName);
+  const initials = displayName?.[0]?.toUpperCase() ?? 'U';
+  const av = getAvatarColor(displayName || 'U');
 
   const handleSignOut = () => {
     Alert.alert('Sign out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign out', style: 'destructive', onPress: () => signOut() },
+      {
+        text: 'Sign out',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await signOut();
+            router.replace('/(auth)/sign-in');
+          } catch (e) {
+            Alert.alert('Error', 'Failed to sign out. Please try again.');
+          }
+        },
+      },
     ]);
   };
 
@@ -89,13 +114,13 @@ export default function SettingsScreen() {
         <TouchableOpacity
           style={styles.profileCard}
           activeOpacity={0.7}
-          onPress={() => Alert.alert('Profile', `Signed in as ${emailAddress}`)}
+          onPress={() => emailAddress && Alert.alert('Profile', `Signed in as ${emailAddress}`)}
         >
           <View style={[styles.avatar, { backgroundColor: av.bg }]}>
             <Text style={[styles.avatarText, { color: av.text }]}>{initials}</Text>
           </View>
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{displayName}</Text>
+            <Text style={styles.profileName}>{isLoaded ? displayName : '—'}</Text>
             <Text style={styles.profileEmail} numberOfLines={1}>{emailAddress}</Text>
           </View>
           <MaterialCommunityIcons name="chevron-right" size={20} color="#d1d5db" />
@@ -159,6 +184,8 @@ const styles = StyleSheet.create({
   profileInfo: { flex: 1 },
   profileName: { fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 2 },
   profileEmail: { fontSize: 12, color: '#9ca3af', fontWeight: '500' },
+  skeletonName: { height: 14, width: 120, backgroundColor: '#f3f4f6', borderRadius: 6, marginBottom: 6 },
+  skeletonEmail: { height: 11, width: 180, backgroundColor: '#f3f4f6', borderRadius: 6 },
 
   // Settings card
   settingsCard: {
@@ -191,5 +218,5 @@ const styles = StyleSheet.create({
   },
   signOutText: { fontSize: 15, fontWeight: '600', color: '#dc2626' },
 
-  footer: { textAlign: 'center', fontSize: 12, color: '#c4c4c4', fontWeight: '500' },
+  footer: { textAlign: 'center', fontSize: 12, color: '#c4c4c4', fontWeight: '500', fontFamily: 'GeistMono_400Regular' },
 });

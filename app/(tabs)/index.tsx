@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   View, ScrollView, StyleSheet, RefreshControl, AppState, AppStateStatus,
   Platform, TouchableOpacity, ActivityIndicator,
@@ -122,11 +122,26 @@ export default function Dashboard() {
   }));
   const chartMax = Math.max(...chartBars.map(b => b.value), 1);
 
-  // Today's total
-  const todayKey = format(new Date(), 'yyyy-MM-dd');
-  const todayTotal = recent
-    .filter(tx => format(new Date(tx.paidAt), 'yyyy-MM-dd') === todayKey)
-    .reduce((sum, tx) => sum + tx.amount, 0);
+  // Group recent transactions by date (same pattern as Activity screen)
+  const recentGroups = useMemo(() => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+    const map: Record<string, { label: string; sentTotal: number; items: Transaction[] }> = {};
+    const order: string[] = [];
+
+    for (const tx of recent) {
+      const date = format(new Date(tx.paidAt), 'yyyy-MM-dd');
+      if (!map[date]) {
+        const label = date === today ? 'TODAY' : date === yesterday ? 'YESTERDAY' : format(new Date(tx.paidAt), 'MMM d');
+        map[date] = { label, sentTotal: 0, items: [] };
+        order.push(date);
+      }
+      map[date].items.push(tx);
+      if ((tx.type ?? 'sent') === 'sent') map[date].sentTotal += tx.amount;
+    }
+
+    return order.map((d) => ({ date: d, ...map[d] }));
+  }, [recent]);
 
   if (loading) {
     return (
@@ -198,6 +213,9 @@ export default function Dashboard() {
                 : 8;
               return (
                 <View key={i} style={styles.barCol}>
+                  <Text style={styles.barValueLabel}>
+                    {bar.value > 0 ? fmtShort(bar.value) : ''}
+                  </Text>
                   <View
                     style={[
                       styles.bar,
@@ -241,22 +259,13 @@ export default function Dashboard() {
         )}
 
         {/* ── Recent Transactions ── */}
-        <View style={styles.recentCard}>
+        <View style={styles.recentSection}>
           <View style={styles.recentHeader}>
             <Text style={styles.recentLabel}>RECENT</Text>
-            <TouchableOpacity onPress={() => router.push('/(tabs)/history')}>
+            <TouchableOpacity onPress={() => router.push('/(tabs)/activity')}>
               <Text style={styles.seeAll}>See all →</Text>
             </TouchableOpacity>
           </View>
-
-          {recent.length > 0 && (
-            <View style={styles.todayRow}>
-              <Text style={styles.todayLabel}>TODAY</Text>
-              {todayTotal > 0 && (
-                <Text style={styles.todayTotal}>-₹{todayTotal.toLocaleString('en-IN')}</Text>
-              )}
-            </View>
-          )}
 
           {recent.length === 0 ? (
             <View style={styles.emptyBox}>
@@ -265,36 +274,55 @@ export default function Dashboard() {
               <Text style={styles.emptyHint}>Sync from SMS or add manually</Text>
             </View>
           ) : (
-            recent.map((tx, idx) => {
-              const av = avatarStyle(tx.recipient || 'U');
-              const isSent = (tx.type ?? 'sent') === 'sent';
-              return (
-                <TouchableOpacity
-                  key={tx._id}
-                  style={[styles.txRow, idx < recent.length - 1 && styles.txRowBorder]}
-                  activeOpacity={0.7}
-                  onPress={() => router.push({ pathname: '/transaction-detail', params: { id: tx._id } })}
-                >
-                  <View style={[styles.avatar, { backgroundColor: av.bg }]}>
-                    <Text style={[styles.avatarText, { color: av.text }]}>
-                      {(tx.recipient || 'U')[0].toUpperCase()}
-                    </Text>
-                  </View>
-                  <View style={styles.txInfo}>
-                    <Text style={styles.txName} numberOfLines={1}>{tx.recipient}</Text>
-                    <View style={styles.txMeta}>
-                      <View style={[styles.catDot, { backgroundColor: CATEGORY_COLORS[tx.category] }]} />
-                      <Text style={styles.txMetaText}>
-                        {tx.category} · {format(new Date(tx.paidAt), 'HH:mm')}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text style={[styles.txAmount, { color: isSent ? '#111827' : '#16a34a' }]}>
-                    {isSent ? '-' : '+'}₹{tx.amount.toLocaleString('en-IN')}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })
+            recentGroups.map((group) => (
+              <View key={group.date} style={styles.daySection}>
+                <View style={styles.dayHeader}>
+                  <Text style={styles.dayLabel}>{group.label}</Text>
+                  {group.sentTotal > 0 && (
+                    <Text style={styles.dayTotal}>-{fmtShort(group.sentTotal)}</Text>
+                  )}
+                </View>
+                <View style={styles.dayCard}>
+                  {group.items.map((tx, i) => {
+                    const av = avatarStyle(tx.recipient || 'U');
+                    const isSent = (tx.type ?? 'sent') === 'sent';
+                    const isFirst = i === 0;
+                    const isLast = i === group.items.length - 1;
+                    return (
+                      <TouchableOpacity
+                        key={tx._id}
+                        style={[
+                          styles.txRow,
+                          isFirst && styles.txRowFirst,
+                          isLast && styles.txRowLast,
+                          !isLast && styles.txRowSep,
+                        ]}
+                        activeOpacity={0.7}
+                        onPress={() => router.push({ pathname: '/transaction-detail', params: { id: tx._id } })}
+                      >
+                        <View style={[styles.avatar, { backgroundColor: av.bg }]}>
+                          <Text style={[styles.avatarText, { color: av.text }]}>
+                            {(tx.recipient || 'U')[0].toUpperCase()}
+                          </Text>
+                        </View>
+                        <View style={styles.txInfo}>
+                          <Text style={styles.txName} numberOfLines={1}>{tx.recipient}</Text>
+                          <View style={styles.txMeta}>
+                            <View style={[styles.catDot, { backgroundColor: CATEGORY_COLORS[tx.category] }]} />
+                            <Text style={styles.txMetaText}>
+                              {tx.category} · {format(new Date(tx.paidAt), 'HH:mm')}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={[styles.txAmount, { color: isSent ? '#111827' : '#16a34a' }]}>
+                          {isSent ? '-' : '+'}₹{tx.amount.toLocaleString('en-IN')}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            ))
           )}
         </View>
       </ScrollView>
@@ -305,7 +333,7 @@ export default function Dashboard() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  scroll: { paddingBottom: 32 },
+  scroll: { paddingBottom: 40 },
 
   // Header
   header: {
@@ -318,17 +346,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
   },
   headerLeft: { flex: 1, gap: 2 },
-  spentLabel: { fontSize: 13, color: '#9ca3af', fontWeight: '500' },
-  amountText: { fontSize: 40, fontWeight: '800', color: '#111827', letterSpacing: -1, lineHeight: 46 },
+  spentLabel: { fontSize: 13, color: '#9ca3af', fontWeight: '500', fontFamily: 'Inter_500Medium' },
+  amountText: { fontSize: 40, fontWeight: '800', color: '#111827', letterSpacing: -1, lineHeight: 46, fontFamily: 'GeistMono_700Bold' },
   compareRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 4 },
-  compareText: { fontSize: 12, fontWeight: '600' },
+  compareText: { fontSize: 12, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
   scanBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 20,
     paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#fff',
     marginTop: 4,
   },
-  scanBtnText: { fontSize: 12, color: '#555', fontWeight: '500' },
+  scanBtnText: { fontSize: 12, color: '#555', fontWeight: '500', fontFamily: 'Inter_500Medium' },
 
   // Chart
   chartCard: {
@@ -346,17 +374,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginBottom: 20,
   },
-  chartLabel: { fontSize: 11, fontWeight: '700', color: '#9ca3af', letterSpacing: 0.8 },
+  chartLabel: { fontSize: 11, fontWeight: '700', color: '#9ca3af', letterSpacing: 0.8, fontFamily: 'Inter_700Bold' },
   datePill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 20,
     paddingHorizontal: 10, paddingVertical: 4,
   },
-  datePillText: { fontSize: 11, color: '#6b7280', fontWeight: '500' },
+  datePillText: { fontSize: 11, color: '#6b7280', fontWeight: '500', fontFamily: 'Inter_500Medium' },
   barsRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    height: BAR_AREA_HEIGHT + 22,
+    height: BAR_AREA_HEIGHT + 40,
   },
   barCol: {
     flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 6,
@@ -364,8 +392,9 @@ const styles = StyleSheet.create({
   bar: {
     width: '60%', borderRadius: 6,
   },
-  barDayLabel: { fontSize: 10, color: '#9ca3af', fontWeight: '500' },
-  barDayLabelToday: { color: '#1a1a1a', fontWeight: '700' },
+  barValueLabel: { fontSize: 9, color: '#9ca3af', fontFamily: 'Inter_400Regular', marginBottom: 3, textAlign: 'center' },
+  barDayLabel: { fontSize: 10, color: '#9ca3af', fontWeight: '500', fontFamily: 'Inter_500Medium' },
+  barDayLabelToday: { color: '#1a1a1a', fontWeight: '700', fontFamily: 'Inter_700Bold' },
 
   // Category
   categoryScroll: {
@@ -382,54 +411,50 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   catCardTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  catCardName: { fontSize: 12, color: '#6b7280', fontWeight: '500' },
-  catCardAmount: { fontSize: 17, fontWeight: '800', color: '#111827' },
+  catCardName: { fontSize: 12, color: '#6b7280', fontWeight: '500', fontFamily: 'Inter_500Medium' },
+  catCardAmount: { fontSize: 17, fontWeight: '800', color: '#111827', fontFamily: 'GeistMono_700Bold' },
 
   // Recent
-  recentCard: {
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginTop: 4,
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
-  },
+  recentSection: { marginHorizontal: 16, marginTop: 4 },
   recentHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
-  recentLabel: { fontSize: 11, fontWeight: '700', color: '#9ca3af', letterSpacing: 0.8 },
-  seeAll: { fontSize: 13, color: '#6b7280', fontWeight: '500' },
-  todayRow: {
+  recentLabel: { fontSize: 11, fontWeight: '700', color: '#9ca3af', letterSpacing: 0.8, fontFamily: 'Inter_700Bold' },
+  seeAll: { fontSize: 13, color: '#6b7280', fontWeight: '500', fontFamily: 'Inter_500Medium' },
+  // Day-grouped sections (matches Activity screen)
+  daySection: { marginBottom: 20 },
+  dayHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 8, paddingHorizontal: 2,
   },
-  todayLabel: { fontSize: 12, fontWeight: '700', color: '#374151' },
-  todayTotal: { fontSize: 12, color: '#6b7280', fontWeight: '500' },
-
-  // Transaction rows
+  dayLabel: { fontSize: 12, fontWeight: '700', color: '#9ca3af', letterSpacing: 0.5, fontFamily: 'Inter_700Bold' },
+  dayTotal: { fontSize: 12, color: '#9ca3af', fontFamily: 'GeistMono_400Regular' },
+  dayCard: {
+    backgroundColor: '#fff', borderRadius: 14,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+  },
   txRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 12,
+    paddingHorizontal: 14, paddingVertical: 13, backgroundColor: '#fff',
   },
-  txRowBorder: { borderBottomWidth: 1, borderBottomColor: '#f9fafb' },
+  txRowFirst: { borderTopLeftRadius: 14, borderTopRightRadius: 14 },
+  txRowLast: { borderBottomLeftRadius: 14, borderBottomRightRadius: 14 },
+  txRowSep: { borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   avatar: {
     width: 42, height: 42, borderRadius: 21,
     justifyContent: 'center', alignItems: 'center',
   },
-  avatarText: { fontSize: 16, fontWeight: '700' },
+  avatarText: { fontSize: 16, fontWeight: '700', fontFamily: 'Inter_700Bold' },
   txInfo: { flex: 1 },
-  txName: { fontSize: 14, fontWeight: '600', color: '#111827', marginBottom: 3 },
+  txName: { fontSize: 14, fontWeight: '600', color: '#111827', marginBottom: 3, fontFamily: 'Inter_600SemiBold' },
   txMeta: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   catDot: { width: 7, height: 7, borderRadius: 2 },
-  txMetaText: { fontSize: 12, color: '#9ca3af' },
-  txAmount: { fontSize: 14, fontWeight: '700' },
+  txMetaText: { fontSize: 12, color: '#9ca3af', fontFamily: 'Inter_400Regular' },
+  txAmount: { fontSize: 14, fontWeight: '700', fontFamily: 'GeistMono_700Bold' },
 
   emptyBox: { alignItems: 'center', paddingVertical: 28, gap: 8 },
-  emptyText: { fontSize: 14, color: '#9ca3af', fontWeight: '500' },
-  emptyHint: { fontSize: 12, color: '#d1d5db' },
+  emptyText: { fontSize: 14, color: '#9ca3af', fontWeight: '500', fontFamily: 'Inter_500Medium' },
+  emptyHint: { fontSize: 12, color: '#d1d5db', fontFamily: 'Inter_400Regular' },
 });

@@ -10,20 +10,41 @@ import {
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   useFonts,
-  Poppins_400Regular,
-  Poppins_500Medium,
-  Poppins_700Bold,
-} from "@expo-google-fonts/poppins";
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
+} from "@expo-google-fonts/inter";
+import {
+  GeistMono_400Regular,
+  GeistMono_600SemiBold,
+  GeistMono_700Bold,
+} from "@expo-google-fonts/geist-mono";
 import * as SplashScreen from "expo-splash-screen";
 
 SplashScreen.preventAutoHideAsync();
 
 const theme = {
   ...MD3LightTheme,
-  colors: { ...MD3LightTheme.colors, primary: "#6200ee", secondary: "#03dac6" },
+  colors: { ...MD3LightTheme.colors, primary: "#22c55e", secondary: "#3b82f6" },
   fonts: configureFonts({
     config: {
-      fontFamily: "Poppins_400Regular",
+      displayLarge:   { fontFamily: "Inter_800ExtraBold" },
+      displayMedium:  { fontFamily: "Inter_700Bold" },
+      displaySmall:   { fontFamily: "Inter_700Bold" },
+      headlineLarge:  { fontFamily: "Inter_800ExtraBold" },
+      headlineMedium: { fontFamily: "Inter_700Bold" },
+      headlineSmall:  { fontFamily: "Inter_600SemiBold" },
+      titleLarge:     { fontFamily: "Inter_700Bold" },
+      titleMedium:    { fontFamily: "Inter_600SemiBold" },
+      titleSmall:     { fontFamily: "Inter_600SemiBold" },
+      bodyLarge:      { fontFamily: "Inter_400Regular" },
+      bodyMedium:     { fontFamily: "Inter_400Regular" },
+      bodySmall:      { fontFamily: "Inter_400Regular" },
+      labelLarge:     { fontFamily: "Inter_600SemiBold" },
+      labelMedium:    { fontFamily: "Inter_500Medium" },
+      labelSmall:     { fontFamily: "Inter_500Medium" },
     },
   }),
 };
@@ -32,9 +53,14 @@ const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
-    Poppins_400Regular,
-    Poppins_500Medium,
-    Poppins_700Bold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
+    GeistMono_400Regular,
+    GeistMono_600SemiBold,
+    GeistMono_700Bold,
   });
 
   useEffect(() => {
@@ -63,6 +89,10 @@ export default function RootLayout() {
               />
               <Stack.Screen
                 name="edit-transaction"
+                options={{ presentation: "modal", headerShown: false }}
+              />
+              <Stack.Screen
+                name="categorize"
                 options={{ presentation: "modal", headerShown: false }}
               />
               <Stack.Screen

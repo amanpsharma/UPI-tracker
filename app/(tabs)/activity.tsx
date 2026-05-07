@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { View, FlatList, StyleSheet, RefreshControl, TouchableOpacity, ActivityIndicator as RNActivityIndicator } from 'react-native';
-import { subDays, startOfMonth } from 'date-fns';
-import { Text, Searchbar, Menu, Divider, IconButton, ActivityIndicator, Chip } from 'react-native-paper';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  View, FlatList, StyleSheet, RefreshControl, TouchableOpacity,
+  ActivityIndicator as RNActivityIndicator, ScrollView,
+} from 'react-native';
+import { subDays, startOfMonth, format } from 'date-fns';
+import { Text, Searchbar } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, router } from 'expo-router';
-import { format } from 'date-fns';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '@/services/api';
-import { CATEGORIES, CATEGORY_COLORS, CATEGORY_ICONS } from '@/constants';
+import { CATEGORIES, CATEGORY_COLORS } from '@/constants';
 import { Category, Transaction, TransactionType } from '@/types';
 import SwipeableRow from '@/components/SwipeableRow';
 
@@ -23,9 +25,23 @@ const AVATAR_PALETTE = [
   { bg: '#fbcfe8', text: '#db2777' },
   { bg: '#cffafe', text: '#0891b2' },
 ];
+
 function avatarStyle(name: string) {
   return AVATAR_PALETTE[(name || 'U').charCodeAt(0) % AVATAR_PALETTE.length];
 }
+
+function fmtShort(n: number): string {
+  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
+  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}k`;
+  return `₹${Math.round(n)}`;
+}
+
+type DayGroup = {
+  date: string;
+  label: string;
+  sentTotal: number;
+  transactions: Transaction[];
+};
 
 export default function ActivityScreen() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -34,23 +50,15 @@ export default function ActivityScreen() {
   const [filterCategory, setFilterCategory] = useState<Category | ''>('');
   const [filterType, setFilterType] = useState<TransactionType | ''>('');
   const [dateRange, setDateRange] = useState<'7d' | 'month' | '90d' | ''>('');
-  const [menuVisible, setMenuVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [totalCount, setTotalCount] = useState<number | null>(null);
   const [error, setError] = useState('');
   const skipRef = useRef(0);
   const loadingMoreRef = useRef(false);
 
-  const dateRangeOptions: { label: string; value: '7d' | 'month' | '90d' | '' }[] = [
-    { label: 'All', value: '' },
-    { label: '7D', value: '7d' },
-    { label: 'Month', value: 'month' },
-    { label: '90D', value: '90d' },
-  ];
-
-  // Debounce search → server call
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 400);
     return () => clearTimeout(t);
@@ -63,22 +71,25 @@ export default function ActivityScreen() {
     return undefined;
   };
 
-  // Initial / filter-change load — always resets to page 1
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
     skipRef.current = 0;
     loadingMoreRef.current = false;
     try {
-      const data = await api.getTransactions({
-        category: filterCategory || undefined,
-        type: filterType || undefined,
-        from: getFromDate(dateRange),
-        search: debouncedSearch.trim() || undefined,
-        skip: 0,
-        limit: PAGE_SIZE,
-      });
+      const [data, count] = await Promise.all([
+        api.getTransactions({
+          category: filterCategory || undefined,
+          type: filterType || undefined,
+          from: getFromDate(dateRange),
+          search: debouncedSearch.trim() || undefined,
+          skip: 0,
+          limit: PAGE_SIZE,
+        }),
+        api.getTransactionCount(),
+      ]);
       setTransactions(data);
+      setTotalCount(count);
       skipRef.current = data.length;
       setHasMore(data.length === PAGE_SIZE);
     } catch (err: any) {
@@ -89,9 +100,12 @@ export default function ActivityScreen() {
     }
   }, [filterCategory, filterType, dateRange, debouncedSearch]);
 
+  // Re-fetch whenever filters / search / date range change
+  useEffect(() => { load(); }, [load]);
+
+  // Also re-fetch when the tab regains focus (picks up transactions added elsewhere)
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  // Append next page
   const loadMore = async () => {
     if (loadingMoreRef.current || !hasMore || loading) return;
     loadingMoreRef.current = true;
@@ -124,36 +138,81 @@ export default function ActivityScreen() {
     skipRef.current = Math.max(0, skipRef.current - 1);
   };
 
-  const renderItem = ({ item }: { item: Transaction }) => {
-    const av = avatarStyle(item.recipient || 'U');
-    const isSent = (item.type ?? 'sent') === 'sent';
-    return (
-      <SwipeableRow
-        onDelete={() => handleDelete(item._id)}
-        onPress={() => router.push({ pathname: '/transaction-detail', params: { id: item._id } })}
-      >
-        <View style={styles.txRow}>
-          <View style={[styles.avatar, { backgroundColor: av.bg }]}>
-            <Text style={[styles.avatarText, { color: av.text }]}>
-              {(item.recipient || 'U')[0].toUpperCase()}
-            </Text>
-          </View>
-          <View style={styles.txInfo}>
-            <Text style={styles.txName} numberOfLines={1}>{item.recipient || 'Unknown'}</Text>
-            <View style={styles.txMeta}>
-              <View style={[styles.catDot, { backgroundColor: CATEGORY_COLORS[item.category] }]} />
-              <Text style={styles.txMetaText}>
-                {item.category} · {format(new Date(item.paidAt), 'MMM d, HH:mm')}
-              </Text>
-            </View>
-          </View>
-          <Text style={[styles.txAmount, { color: isSent ? '#111827' : '#16a34a' }]}>
-            {isSent ? '-' : '+'}₹{item.amount.toLocaleString('en-IN')}
-          </Text>
-        </View>
-      </SwipeableRow>
-    );
-  };
+  // Group transactions by calendar date
+  const groups = useMemo<DayGroup[]>(() => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+    const map: Record<string, DayGroup> = {};
+    const order: string[] = [];
+
+    for (const tx of transactions) {
+      const date = format(new Date(tx.paidAt), 'yyyy-MM-dd');
+      if (!map[date]) {
+        const label =
+          date === today ? 'TODAY'
+          : date === yesterday ? 'YESTERDAY'
+          : format(new Date(tx.paidAt), 'MMM d');
+        map[date] = { date, label, sentTotal: 0, transactions: [] };
+        order.push(date);
+      }
+      map[date].transactions.push(tx);
+      if ((tx.type ?? 'sent') === 'sent') map[date].sentTotal += tx.amount;
+    }
+
+    return order.map((d) => map[d]);
+  }, [transactions]);
+
+  const renderGroup = ({ item: group }: { item: DayGroup }) => (
+    <View style={styles.daySection}>
+      <View style={styles.dayHeader}>
+        <Text style={styles.dayLabel}>{group.label}</Text>
+        {group.sentTotal > 0 && (
+          <Text style={styles.dayTotal}>-{fmtShort(group.sentTotal)}</Text>
+        )}
+      </View>
+      <View style={styles.dayCard}>
+        {group.transactions.map((tx, i) => {
+          const av = avatarStyle(tx.recipient || 'U');
+          const isSent = (tx.type ?? 'sent') === 'sent';
+          const isFirst = i === 0;
+          const isLast = i === group.transactions.length - 1;
+          return (
+            <SwipeableRow
+              key={tx._id}
+              stripped
+              onDelete={() => handleDelete(tx._id)}
+              onPress={() => router.push({ pathname: '/transaction-detail', params: { id: tx._id } })}
+            >
+              <View style={[
+                styles.txRow,
+                isFirst && styles.txRowFirst,
+                isLast && styles.txRowLast,
+                !isLast && styles.txRowSep,
+              ]}>
+                <View style={[styles.avatar, { backgroundColor: av.bg }]}>
+                  <Text style={[styles.avatarText, { color: av.text }]}>
+                    {(tx.recipient || 'U')[0].toUpperCase()}
+                  </Text>
+                </View>
+                <View style={styles.txInfo}>
+                  <Text style={styles.txName} numberOfLines={1}>{tx.recipient || 'Unknown'}</Text>
+                  <View style={styles.txMeta}>
+                    <View style={[styles.catDot, { backgroundColor: CATEGORY_COLORS[tx.category] }]} />
+                    <Text style={styles.txMetaText}>
+                      {tx.category} · {format(new Date(tx.paidAt), 'HH:mm')}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={[styles.txAmount, { color: isSent ? '#111827' : '#16a34a' }]}>
+                  {isSent ? '-' : '+'}₹{tx.amount.toLocaleString('en-IN')}
+                </Text>
+              </View>
+            </SwipeableRow>
+          );
+        })}
+      </View>
+    </View>
+  );
 
   const ListFooter = () => {
     if (loadingMore) {
@@ -176,111 +235,95 @@ export default function ActivityScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
+      {/* ── Header ── */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Activity</Text>
-          {!loading && (
-            <Text style={styles.totalCount}>
-              {transactions.length}{hasMore ? '+' : ''} transactions
-            </Text>
-          )}
-        </View>
-        <Menu
-          visible={menuVisible}
-          onDismiss={() => setMenuVisible(false)}
-          contentStyle={{ backgroundColor: '#fff', borderRadius: 12 }}
-          anchor={
-            <IconButton
-              icon="filter-variant"
-              mode={filterCategory ? 'contained' : 'contained-tonal'}
-              containerColor={filterCategory ? CATEGORY_COLORS[filterCategory] : '#f3f4f6'}
-              iconColor={filterCategory ? '#fff' : '#4b5563'}
-              size={22}
-              style={styles.filterBtn}
-              onPress={() => setMenuVisible(true)}
-            />
-          }
-        >
-          <Menu.Item title="All categories" leadingIcon="view-grid" onPress={() => { setFilterCategory(''); setMenuVisible(false); }} />
-          <Divider />
-          {CATEGORIES.map((c) => (
-            <Menu.Item key={c} title={c} leadingIcon={CATEGORY_ICONS[c]} onPress={() => { setFilterCategory(c); setMenuVisible(false); }} />
-          ))}
-        </Menu>
+        <Text style={styles.title}>Activity</Text>
+        {totalCount !== null && (
+          <Text style={styles.subtitle}>{totalCount.toLocaleString('en-IN')} transactions</Text>
+        )}
       </View>
 
-      {/* Search */}
+      {/* ── Search ── */}
       <View style={styles.searchRow}>
         <Searchbar
-          placeholder="Search name, UPI ID, note…"
+          placeholder="Search merchant..."
           value={search}
           onChangeText={setSearch}
           style={styles.searchBar}
-          inputStyle={{ fontSize: 14, color: '#1f2937' }}
+          inputStyle={{ fontSize: 14, color: '#1f2937', fontFamily: 'Inter_400Regular' }}
           placeholderTextColor="#9ca3af"
-          iconColor="#6b7280"
+          iconColor="#9ca3af"
           elevation={0}
         />
       </View>
 
-      {/* Type + date filter chips */}
-      <View style={styles.chipRow}>
+      {/* ── Filter chips ── */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.chipScrollOuter}
+        contentContainerStyle={styles.chipScroll}
+      >
+        {/* Type: All / Sent / Received */}
         {(['', 'sent', 'received'] as const).map((t) => {
           const active = filterType === t;
-          const label = t === '' ? 'All' : t === 'sent' ? '↑ Sent' : '↓ Received';
-          const bg = active ? (t === 'sent' ? '#dc2626' : t === 'received' ? '#059669' : '#111827') : '#fff';
-          const color = active ? '#fff' : t === 'sent' ? '#dc2626' : t === 'received' ? '#059669' : '#555';
+          const label = t === '' ? 'All' : t === 'sent' ? 'Sent' : 'Received';
           return (
             <TouchableOpacity
-              key={t}
-              style={[styles.typeChip, { backgroundColor: bg, borderColor: active ? bg : '#e5e7eb' }]}
+              key={`type-${t}`}
+              style={[styles.chip, active && styles.chipActive]}
               onPress={() => setFilterType(t)}
             >
-              <Text style={[styles.typeChipText, { color }]}>{label}</Text>
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
             </TouchableOpacity>
           );
         })}
-        {dateRangeOptions.map(({ label, value }) => {
-          const active = dateRange === value;
+
+        {/* Date range */}
+        {(['7d', 'month', '90d'] as const).map((v) => {
+          const label = v === '7d' ? '7D' : v === 'month' ? 'Month' : '90D';
+          const active = dateRange === v;
           return (
             <TouchableOpacity
-              key={value}
-              style={[styles.typeChip, { backgroundColor: active ? '#111827' : '#fff', borderColor: active ? '#111827' : '#e5e7eb' }]}
-              onPress={() => setDateRange(value)}
+              key={`date-${v}`}
+              style={[styles.chip, active && styles.chipActive]}
+              onPress={() => setDateRange(active ? '' : v)}
             >
-              <Text style={[styles.typeChipText, { color: active ? '#fff' : '#555' }]}>{label}</Text>
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
             </TouchableOpacity>
           );
         })}
-      </View>
 
-      {/* Active category chip */}
-      {filterCategory ? (
-        <View style={styles.activeCatRow}>
-          <Chip
-            icon={() => <MaterialCommunityIcons name={CATEGORY_ICONS[filterCategory] as any} size={14} color="#fff" />}
-            style={[styles.activeCatChip, { backgroundColor: CATEGORY_COLORS[filterCategory] }]}
-            textStyle={{ color: '#fff', fontSize: 13, fontWeight: '600' }}
-            onClose={() => setFilterCategory('')}
-            closeIcon={() => <MaterialCommunityIcons name="close-circle" size={16} color="#fff" />}
-          >
-            {filterCategory}
-          </Chip>
-        </View>
-      ) : null}
+        {/* Category chips with colored dots */}
+        {CATEGORIES.map((cat) => {
+          const active = filterCategory === cat;
+          return (
+            <TouchableOpacity
+              key={`cat-${cat}`}
+              style={[
+                styles.chip,
+                active && { backgroundColor: CATEGORY_COLORS[cat], borderColor: CATEGORY_COLORS[cat] },
+              ]}
+              onPress={() => setFilterCategory(filterCategory === cat ? '' : cat)}
+            >
+              <View style={[styles.chipDot, { backgroundColor: active ? '#fff' : CATEGORY_COLORS[cat] }]} />
+              <Text style={[styles.chipText, active && { color: '#fff' }]}>{cat}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
 
+      {/* ── List ── */}
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color="#111827" />
+          <RNActivityIndicator size="large" color="#111827" />
         </View>
       ) : (
         <FlatList
-          data={transactions}
-          keyExtractor={(item) => item._id}
-          renderItem={renderItem}
+          data={groups}
+          keyExtractor={(item) => item.date}
+          renderItem={renderGroup}
           contentContainerStyle={styles.list}
-          ItemSeparatorComponent={() => <View style={{ height: 6 }} />}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#111827" />}
           onEndReached={loadMore}
@@ -288,7 +331,11 @@ export default function ActivityScreen() {
           ListFooterComponent={<ListFooter />}
           ListEmptyComponent={
             <View style={styles.emptyBox}>
-              <MaterialCommunityIcons name={error ? 'wifi-off' : 'receipt-text-outline'} size={40} color="#e5e7eb" />
+              <MaterialCommunityIcons
+                name={error ? 'wifi-off' : 'receipt-text-outline'}
+                size={40}
+                color="#e5e7eb"
+              />
               <Text style={[styles.emptyText, error ? { color: '#ef4444' } : null]}>
                 {error || (search || filterCategory ? 'No results found.' : 'No transactions yet.')}
               </Text>
@@ -305,39 +352,66 @@ export default function ActivityScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 40 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
-  title: { fontSize: 34, fontWeight: '800', color: '#111827', letterSpacing: -0.5 },
-  totalCount: { fontSize: 12, color: '#9ca3af', fontWeight: '500', marginTop: 2 },
-  filterBtn: { margin: 0, borderRadius: 12 },
+  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
+  title: { fontSize: 34, fontWeight: '800', color: '#111827', letterSpacing: -0.5, fontFamily: 'Inter_800ExtraBold' },
+  subtitle: { fontSize: 13, color: '#9ca3af', fontWeight: '500', marginTop: 3, fontFamily: 'Inter_500Medium' },
 
-  searchRow: { paddingHorizontal: 16, marginBottom: 8 },
-  searchBar: { backgroundColor: '#fff', borderRadius: 12, height: 46 },
+  searchRow: { paddingHorizontal: 16, marginBottom: 10 },
+  searchBar: { backgroundColor: '#fff', borderRadius: 30, height: 48 },
 
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 16, marginBottom: 8 },
-  typeChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
-  typeChipText: { fontSize: 12, fontWeight: '600' },
+  chipScrollOuter: { height: 52, flexShrink: 0 },
+  chipScroll: { paddingHorizontal: 16, alignItems: 'center', flexDirection: 'row' },
+  chip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: 20, borderWidth: 1, borderColor: '#e5e7eb',
+    backgroundColor: '#fff', marginRight: 8, flexShrink: 0,
+  },
+  chipActive: { backgroundColor: '#111827', borderColor: '#111827' },
+  chipText: { fontSize: 13, fontWeight: '600', color: '#374151', fontFamily: 'Inter_600SemiBold' },
+  chipTextActive: { color: '#fff' },
+  chipDot: { width: 7, height: 7, borderRadius: 2 },
 
-  activeCatRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 6 },
-  activeCatChip: { elevation: 0 },
+  list: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 32, flexGrow: 1 },
 
-  list: { padding: 16, paddingTop: 4, flexGrow: 1 },
+  daySection: { marginBottom: 20 },
+  dayHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginBottom: 8, paddingHorizontal: 2,
+  },
+  dayLabel: { fontSize: 12, fontWeight: '700', color: '#9ca3af', letterSpacing: 0.5, fontFamily: 'Inter_700Bold' },
+  dayTotal: { fontSize: 12, color: '#9ca3af', fontFamily: 'GeistMono_400Regular' },
 
-  txRow: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12 },
+  dayCard: {
+    backgroundColor: '#fff', borderRadius: 14,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+  },
+
+  txRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 14, paddingVertical: 13,
+    backgroundColor: '#fff',
+  },
+  txRowFirst: { borderTopLeftRadius: 14, borderTopRightRadius: 14 },
+  txRowLast: { borderBottomLeftRadius: 14, borderBottomRightRadius: 14 },
+  txRowSep: { borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+
   avatar: { width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center' },
-  avatarText: { fontSize: 16, fontWeight: '700' },
+  avatarText: { fontSize: 16, fontWeight: '700', fontFamily: 'Inter_700Bold' },
   txInfo: { flex: 1 },
-  txName: { fontSize: 14, fontWeight: '600', color: '#111827', marginBottom: 3 },
+  txName: { fontSize: 14, fontWeight: '600', color: '#111827', marginBottom: 3, fontFamily: 'Inter_600SemiBold' },
   txMeta: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   catDot: { width: 7, height: 7, borderRadius: 2 },
-  txMetaText: { fontSize: 12, color: '#9ca3af' },
-  txAmount: { fontSize: 14, fontWeight: '700' },
+  txMetaText: { fontSize: 12, color: '#9ca3af', fontFamily: 'Inter_400Regular' },
+  txAmount: { fontSize: 14, fontWeight: '700', fontFamily: 'GeistMono_700Bold' },
 
   footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, paddingVertical: 20 },
-  footerText: { fontSize: 13, color: '#9ca3af', fontWeight: '500' },
+  footerText: { fontSize: 13, color: '#9ca3af', fontWeight: '500', fontFamily: 'Inter_500Medium' },
 
   emptyBox: { alignItems: 'center', paddingTop: 60, gap: 10 },
-  emptyText: { color: '#9ca3af', fontSize: 15, fontWeight: '500' },
-  emptyHint: { color: '#d1d5db', fontSize: 13 },
+  emptyText: { color: '#9ca3af', fontSize: 15, fontWeight: '500', fontFamily: 'Inter_500Medium' },
+  emptyHint: { color: '#d1d5db', fontSize: 13, fontFamily: 'Inter_400Regular' },
 });

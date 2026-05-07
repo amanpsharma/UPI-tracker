@@ -34,7 +34,14 @@ export interface MonthlyData {
 }
 
 export interface Stats {
-  thisMonth: { total: number; count: number };
+  thisMonth: {
+    total: number;
+    count: number;
+    sent: number;
+    received: number;
+    sentCount: number;
+    receivedCount: number;
+  };
   lastMonth: { total: number; count: number };
   allTime: { total: number; count: number };
   byCategory: { _id: Category; total: number; count: number }[];

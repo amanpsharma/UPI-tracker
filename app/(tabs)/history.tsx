@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   chartLabel: { fontSize: 11, fontWeight: '700', color: '#9ca3af', letterSpacing: 0.8 },
-  chartAvg: { fontSize: 11, color: '#9ca3af', fontWeight: '500' },
+  chartAvg: { fontSize: 11, color: '#9ca3af', fontWeight: '500', fontFamily: 'GeistMono_400Regular' },
   barsRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     marginBottom: 8, paddingHorizontal: 4,
   },
   yearLabel: { fontSize: 13, color: '#9ca3af', fontWeight: '600' },
-  yearTotal: { fontSize: 13, color: '#9ca3af', fontWeight: '600' },
+  yearTotal: { fontSize: 13, color: '#9ca3af', fontWeight: '600', fontFamily: 'GeistMono_600SemiBold' },
 
   monthsCard: {
     backgroundColor: '#fff',
@@ -296,11 +296,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#dcfce7', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2,
   },
   currentBadgeText: { fontSize: 11, color: '#16a34a', fontWeight: '700' },
-  monthAmount: { fontSize: 15, fontWeight: '700', color: '#111827' },
+  monthAmount: { fontSize: 15, fontWeight: '700', color: '#111827', fontFamily: 'GeistMono_700Bold' },
 
   monthSubRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   monthMeta: { fontSize: 12, color: '#9ca3af', flex: 1 },
-  monthNet: { fontSize: 12, color: '#16a34a', fontWeight: '600', marginLeft: 8 },
+  monthNet: { fontSize: 12, color: '#16a34a', fontWeight: '600', marginLeft: 8, fontFamily: 'GeistMono_600SemiBold' },
 
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
   progressTrack: { flex: 1, height: 3, backgroundColor: '#f3f4f6', borderRadius: 2, overflow: 'hidden' },

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { View, ScrollView, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import { View, ScrollView, StyleSheet, Dimensions, TouchableOpacity, StatusBar } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -7,31 +7,55 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 
-const { width } = Dimensions.get('window');
-
+const { width, height } = Dimensions.get('window');
 export const ONBOARDING_KEY = '@upi_onboarding_done';
 
-const slides = [
+// ── Logo Component ─────────────────────────────────────────────
+function AppLogo({ size = 96 }: { size?: number }) {
+  const radius = size * 0.22;
+  return (
+    <View style={{
+      width: size, height: size, borderRadius: radius,
+      backgroundColor: '#111827',
+      justifyContent: 'center', alignItems: 'center',
+    }}>
+      <Text style={{ color: '#fff', fontSize: size * 0.44, fontWeight: '800', lineHeight: size * 0.52 }}>₹</Text>
+      <View style={{
+        position: 'absolute', bottom: size * 0.1, right: size * 0.08,
+        backgroundColor: '#22c55e', borderRadius: size * 0.1,
+        width: size * 0.3, height: size * 0.3,
+        justifyContent: 'center', alignItems: 'center',
+      }}>
+        <MaterialCommunityIcons name="trending-up" size={size * 0.18} color="#fff" />
+      </View>
+    </View>
+  );
+}
+
+// ── Slides ─────────────────────────────────────────────────────
+type Slide =
+  | { type: 'brand' }
+  | { type: 'feature'; icon: string; accent: string; title: string; body: string };
+
+const slides: Slide[] = [
+  { type: 'brand' },
   {
-    icon: 'message-text-outline' as const,
-    color: '#6200ee',
+    type: 'feature',
+    icon: 'message-text-outline',
+    accent: '#22c55e',
     title: 'Auto-detect Payments',
     body: 'UPI Tracker reads your bank SMS messages and automatically imports every UPI payment — no manual entry needed.',
   },
   {
-    icon: 'chart-pie' as const,
-    color: '#0077cc',
-    title: 'Track by Category',
-    body: 'Every payment is sorted into Food, Transport, Shopping and more so you always know where your money is going.',
-  },
-  {
-    icon: 'bullseye-arrow' as const,
-    color: '#2e7d32',
-    title: 'Set Monthly Budgets',
-    body: 'Set a spending limit for each category. The Stats tab shows how close you are and warns you when you\'re over.',
+    type: 'feature',
+    icon: 'chart-donut-variant',
+    accent: '#3b82f6',
+    title: 'Insights at a Glance',
+    body: 'See exactly where your money goes — by category, month, and trend. Every rupee, accounted for.',
   },
 ];
 
+// ── Screen ─────────────────────────────────────────────────────
 export default function Onboarding() {
   const scroll = useRef<ScrollView>(null);
   const [page, setPage] = useState(0);
@@ -49,9 +73,12 @@ export default function Onboarding() {
   };
 
   const isLast = page === slides.length - 1;
+  const isBrand = page === 0;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.root, isBrand && styles.rootDark]}>
+      <StatusBar barStyle={isBrand ? 'light-content' : 'dark-content'} />
+
       <ScrollView
         ref={scroll}
         horizontal
@@ -60,40 +87,68 @@ export default function Onboarding() {
         scrollEnabled={false}
         style={{ flex: 1 }}
       >
-        {slides.map((s, i) => (
-          <View key={i} style={styles.slide}>
-            <View style={[styles.iconCircle, { backgroundColor: `${s.color}18` }]}>
-              <MaterialCommunityIcons name={s.icon} size={72} color={s.color} />
+        {slides.map((slide, i) => {
+          if (slide.type === 'brand') {
+            return (
+              <View key={i} style={styles.brandSlide}>
+                {/* Logo */}
+                <AppLogo size={110} />
+
+                {/* Name */}
+                <Text style={styles.brandName}>upi.tracker</Text>
+                <Text style={styles.brandTagline}>
+                  Every rupee, <Text style={styles.brandAccent}>tracked.</Text>
+                </Text>
+                <Text style={styles.brandSub}>On-device SMS parsing. No cards, no accounts, no servers.</Text>
+              </View>
+            );
+          }
+
+          return (
+            <View key={i} style={styles.featureSlide}>
+              <View style={[styles.iconWrap, { backgroundColor: `${slide.accent}18` }]}>
+                <MaterialCommunityIcons name={slide.icon as any} size={64} color={slide.accent} />
+              </View>
+              <Text style={styles.featureTitle}>{slide.title}</Text>
+              <Text style={styles.featureBody}>{slide.body}</Text>
             </View>
-            <Text variant="headlineSmall" style={styles.title}>{s.title}</Text>
-            <Text variant="bodyLarge" style={styles.body}>{s.body}</Text>
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
 
       {/* Dots */}
       <View style={styles.dots}>
         {slides.map((_, i) => (
-          <View key={i} style={[styles.dot, i === page && styles.dotActive]} />
+          <View
+            key={i}
+            style={[
+              styles.dot,
+              i === page && styles.dotActive,
+              isBrand && styles.dotDark,
+              i === page && isBrand && styles.dotActiveDark,
+            ]}
+          />
         ))}
       </View>
 
       {/* Navigation */}
       <View style={styles.nav}>
         <TouchableOpacity onPress={finish} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Text style={styles.skip}>Skip</Text>
+          <Text style={[styles.skip, isBrand && styles.skipDark]}>Skip</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.nextBtn, { backgroundColor: slides[page].color }]}
+          style={[styles.nextBtn, isLast && styles.nextBtnFilled]}
           onPress={() => isLast ? finish() : goTo(page + 1)}
           activeOpacity={0.85}
         >
-          <Text style={styles.nextText}>{isLast ? 'Get Started' : 'Next'}</Text>
+          <Text style={[styles.nextText, isLast && styles.nextTextFilled]}>
+            {isLast ? 'Get started' : 'Next'}
+          </Text>
           <MaterialCommunityIcons
-            name={isLast ? 'check' : 'arrow-right'}
-            size={18}
-            color="#fff"
+            name={isLast ? 'arrow-right' : 'arrow-right'}
+            size={16}
+            color={isLast ? '#fff' : '#111827'}
           />
         </TouchableOpacity>
       </View>
@@ -102,43 +157,70 @@ export default function Onboarding() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  slide: {
-    width,
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 36,
-    gap: 20,
+  root: { flex: 1, backgroundColor: '#f5f4f0' },
+  rootDark: { backgroundColor: '#111827' },
+
+  // Brand slide
+  brandSlide: {
+    width, flex: 1,
+    alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 36, gap: 16,
   },
-  iconCircle: {
-    width: 148,
-    height: 148,
-    borderRadius: 74,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
+  brandName: {
+    fontSize: 28, fontWeight: '800', color: '#fff',
+    letterSpacing: -0.5, marginTop: 12,
   },
-  title: { fontWeight: 'bold', color: '#1a1a1a', textAlign: 'center' },
-  body: { color: '#666', textAlign: 'center', lineHeight: 26 },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: 8, paddingBottom: 16 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#ddd' },
-  dotActive: { width: 24, backgroundColor: '#6200ee' },
+  brandTagline: {
+    fontSize: 20, fontWeight: '700', color: '#fff',
+    letterSpacing: -0.3, textAlign: 'center',
+  },
+  brandAccent: { color: '#22c55e' },
+  brandSub: {
+    fontSize: 13, color: 'rgba(255,255,255,0.5)',
+    textAlign: 'center', lineHeight: 20, marginTop: 4,
+  },
+
+  // Feature slides
+  featureSlide: {
+    width, flex: 1,
+    alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 36, gap: 20,
+  },
+  iconWrap: {
+    width: 130, height: 130, borderRadius: 65,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 8,
+  },
+  featureTitle: {
+    fontSize: 26, fontWeight: '800', color: '#111827',
+    textAlign: 'center', letterSpacing: -0.5,
+  },
+  featureBody: {
+    fontSize: 15, color: '#6b7280', textAlign: 'center',
+    lineHeight: 24,
+  },
+
+  // Dots
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, paddingBottom: 16 },
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#d1d5db' },
+  dotActive: { width: 22, backgroundColor: '#111827' },
+  dotDark: { backgroundColor: 'rgba(255,255,255,0.25)' },
+  dotActiveDark: { width: 22, backgroundColor: '#22c55e' },
+
+  // Navigation
   nav: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingBottom: 24,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 28, paddingBottom: 28,
   },
-  skip: { color: '#aaa', fontSize: 15, fontWeight: '500' },
+  skip: { color: '#9ca3af', fontSize: 15, fontWeight: '600' },
+  skipDark: { color: 'rgba(255,255,255,0.4)' },
   nextBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 30,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#fff', borderRadius: 30,
+    paddingHorizontal: 22, paddingVertical: 12,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
   },
-  nextText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  nextBtnFilled: { backgroundColor: '#111827' },
+  nextText: { color: '#111827', fontWeight: '700', fontSize: 15 },
+  nextTextFilled: { color: '#fff' },
 });

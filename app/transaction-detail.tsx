@@ -1,14 +1,48 @@
-import { useEffect, useState } from 'react';
-import { View, ScrollView, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { useCallback, useState } from 'react';
+import { View, ScrollView, StyleSheet, Alert, TouchableOpacity, Platform } from 'react-native';
 import { Text, ActivityIndicator } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, router } from 'expo-router';
-import { format } from 'date-fns';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
+import { format, isToday, isYesterday } from 'date-fns';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { api } from '@/services/api';
-import { CATEGORY_COLORS, CATEGORY_ICONS } from '@/constants';
+import { CATEGORY_COLORS } from '@/constants';
 import { Transaction } from '@/types';
+
+const BG = '#f5f4f0';
+
+const AVATAR_PALETTE = [
+  { bg: '#fecaca', text: '#dc2626' },
+  { bg: '#fed7aa', text: '#ea580c' },
+  { bg: '#fef08a', text: '#ca8a04' },
+  { bg: '#bbf7d0', text: '#16a34a' },
+  { bg: '#bfdbfe', text: '#2563eb' },
+  { bg: '#ddd6fe', text: '#7c3aed' },
+  { bg: '#fbcfe8', text: '#db2777' },
+  { bg: '#cffafe', text: '#0891b2' },
+];
+
+const CAT_DISPLAY: Record<string, string> = {
+  Food: 'Food & Dining',
+  Transport: 'Transport',
+  Shopping: 'Shopping',
+  Bills: 'Bills & Utilities',
+  Entertainment: 'Entertainment',
+  Health: 'Health',
+  Other: 'Other',
+};
+
+function avatarStyle(name: string) {
+  return AVATAR_PALETTE[(name || 'U').charCodeAt(0) % AVATAR_PALETTE.length];
+}
+
+function formatDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  if (isToday(d)) return `Today · ${format(d, 'HH:mm')}`;
+  if (isYesterday(d)) return `Yesterday · ${format(d, 'HH:mm')}`;
+  return `${format(d, 'dd MMM yyyy')} · ${format(d, 'HH:mm')}`;
+}
 
 export default function TransactionDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -16,19 +50,36 @@ export default function TransactionDetail() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    if (!id) return;
-    api.getTransaction(id)
-      .then(setTx)
-      .catch(() => router.back())
-      .finally(() => setLoading(false));
-  }, [id]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!id) return;
+      api.getTransaction(id)
+        .then((data) => { setTx(data); setLoading(false); })
+        .catch(() => router.back());
+    }, [id])
+  );
+
+  const navigateToEdit = (txData: Transaction) => {
+    router.push({
+      pathname: '/edit-transaction',
+      params: {
+        id: txData._id,
+        amount: String(txData.amount),
+        recipient: txData.recipient,
+        note: txData.note ?? '',
+        upiId: txData.upiId ?? '',
+        category: txData.category,
+        type: txData.type ?? 'sent',
+      },
+    });
+  };
 
   const handleDelete = () => {
+    if (!tx) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     Alert.alert(
       'Delete Transaction',
-      `Remove ₹${tx?.amount.toLocaleString('en-IN')} paid to ${tx?.recipient}?`,
+      `Remove ₹${tx.amount.toLocaleString('en-IN')} paid to ${tx.recipient}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -49,24 +100,58 @@ export default function TransactionDetail() {
     );
   };
 
-  const handleEdit = () => {
+  const handleMenu = () => {
+    if (!tx) return;
+    Alert.alert('Options', undefined, [
+      { text: 'Edit Transaction', onPress: () => navigateToEdit(tx) },
+      { text: 'Delete', style: 'destructive', onPress: handleDelete },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  const handleRecategorize = () => {
     if (!tx) return;
     router.push({
-      pathname: '/edit-transaction',
+      pathname: '/categorize',
       params: {
         id: tx._id,
         amount: String(tx.amount),
         recipient: tx.recipient,
-        note: tx.note ?? '',
+        paidAt: tx.paidAt,
+        type: tx.type ?? 'sent',
         category: tx.category,
       },
     });
   };
 
+  const handleAddNote = () => {
+    if (!tx) return;
+    if (Platform.OS === 'ios') {
+      Alert.prompt(
+        tx.note ? 'Edit Note' : 'Add Note',
+        undefined,
+        async (text) => {
+          if (text === null || text === undefined) return;
+          try {
+            const updated = await api.updateTransaction(tx._id, { note: text.trim() });
+            setTx(updated);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          } catch {
+            Alert.alert('Error', 'Failed to save note.');
+          }
+        },
+        'plain-text',
+        tx.note ?? '',
+      );
+    } else {
+      navigateToEdit(tx);
+    }
+  };
+
   if (loading) {
     return (
-      <SafeAreaView style={styles.center}>
-        <ActivityIndicator color="#6200ee" />
+      <SafeAreaView style={[styles.container, styles.center]}>
+        <ActivityIndicator color="#111827" />
       </SafeAreaView>
     );
   }
@@ -74,116 +159,135 @@ export default function TransactionDetail() {
   if (!tx) return null;
 
   const isSent = (tx.type ?? 'sent') === 'sent';
-  const catColor = CATEGORY_COLORS[tx.category];
+  const catColor = CATEGORY_COLORS[tx.category] ?? '#9ca3af';
+  const av = avatarStyle(tx.recipient || 'U');
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
+        <TouchableOpacity
+          style={styles.headerBtn}
+          onPress={() => router.back()}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <MaterialCommunityIcons name="arrow-left" size={20} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Transaction Detail</Text>
-        <View style={{ width: 32 }} />
-      </View>
-
-      {/* Hero */}
-      <View style={styles.hero}>
-        <View style={[styles.heroIcon, { backgroundColor: `${catColor}30` }]}>
-          <MaterialCommunityIcons name={CATEGORY_ICONS[tx.category] as any} size={36} color={catColor} />
-        </View>
-        <Text style={styles.heroRecipient}>{tx.recipient}</Text>
-        <Text style={styles.heroAmount}>
-          {isSent ? '− ' : '+ '}₹{tx.amount.toLocaleString('en-IN')}
-        </Text>
-        <View style={[styles.typeBadge, { backgroundColor: isSent ? '#fee2e2' : '#d1fae5' }]}>
-          <MaterialCommunityIcons
-            name={isSent ? 'arrow-up-circle' : 'arrow-down-circle'}
-            size={14}
-            color={isSent ? '#dc2626' : '#059669'}
-          />
-          <Text style={[styles.typeBadgeText, { color: isSent ? '#dc2626' : '#059669' }]}>
-            {isSent ? 'Sent' : 'Received'}
-          </Text>
-        </View>
+        <TouchableOpacity
+          style={styles.headerBtn}
+          onPress={handleMenu}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <MaterialCommunityIcons name="dots-horizontal" size={20} color="#111827" />
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Hero */}
+        <View style={styles.hero}>
+          <View style={[styles.avatar, { backgroundColor: av.bg }]}>
+            <Text style={[styles.avatarText, { color: av.text }]}>
+              {(tx.recipient || 'U')[0].toUpperCase()}
+            </Text>
+          </View>
+          <Text style={styles.recipientName}>{tx.recipient}</Text>
+          <Text style={[styles.amount, { color: isSent ? '#111827' : '#16a34a' }]}>
+            {isSent ? '-' : '+'}₹{tx.amount.toLocaleString('en-IN')}
+          </Text>
+          <View style={[styles.catPill, { backgroundColor: `${catColor}1a` }]}>
+            <View style={[styles.catDot, { backgroundColor: catColor }]} />
+            <Text style={[styles.catPillText, { color: catColor }]}>
+              {CAT_DISPLAY[tx.category] ?? tx.category}
+            </Text>
+          </View>
+        </View>
+
         {/* Details card */}
         <View style={styles.card}>
-          <Row icon="calendar" label="Date" value={format(new Date(tx.paidAt), 'dd MMM yyyy, hh:mm a')} />
-          <Divider />
-          <Row icon="tag-outline" label="Category" value={tx.category} valueColor={catColor} />
-          <Divider />
+          <DetailRow label="Date" value={formatDate(tx.paidAt)} />
           {tx.upiId ? (
             <>
-              <Row icon="at" label="UPI ID" value={tx.upiId} mono />
-              <Divider />
+              <CardDivider />
+              <DetailRow label="UPI ID" value={tx.upiId} mono />
             </>
           ) : null}
           {tx.note ? (
             <>
-              <Row icon="text" label="Note" value={tx.note} />
-              <Divider />
+              <CardDivider />
+              <DetailRow label="Note" value={tx.note} />
             </>
           ) : null}
-          <Row
-            icon={tx.source === 'sms' ? 'message-processing-outline' : 'hand-pointing-up'}
+          {tx.transactionId ? (
+            <>
+              <CardDivider />
+              <DetailRow label="Reference" value={tx.transactionId} mono truncate />
+            </>
+          ) : null}
+          <CardDivider />
+          <DetailRow
             label="Source"
             value={tx.source === 'sms' ? 'Auto (SMS)' : 'Manual'}
           />
-          {tx.transactionId ? (
-            <>
-              <Divider />
-              <Row icon="identifier" label="Ref / Txn ID" value={tx.transactionId} mono />
-            </>
-          ) : null}
-          <Divider />
-          <Row icon="clock-outline" label="Added on" value={format(new Date(tx.createdAt), 'dd MMM yyyy, hh:mm a')} />
         </View>
 
-        {/* Actions */}
-        <TouchableOpacity style={styles.editBtn} onPress={handleEdit} activeOpacity={0.85}>
-          <MaterialCommunityIcons name="pencil-outline" size={18} color="#fff" />
-          <Text style={styles.editBtnText}>Edit Transaction</Text>
-        </TouchableOpacity>
+        {/* Source SMS section */}
+        {tx.source === 'sms' && (
+          <View style={styles.smsSection}>
+            <Text style={styles.smsSectionLabel}>SOURCE SMS</Text>
+            <View style={styles.smsBox}>
+              <Text style={styles.smsText}>
+                {[
+                  tx.recipient && `Sent to ${tx.recipient}`,
+                  tx.amount && `Rs.${tx.amount.toLocaleString('en-IN')}`,
+                  tx.upiId && `via ${tx.upiId}`,
+                  tx.transactionId && `UPI Ref ${tx.transactionId}`,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </Text>
+            </View>
+          </View>
+        )}
 
-        <TouchableOpacity
-          style={styles.deleteBtn}
-          onPress={handleDelete}
-          disabled={deleting}
-          activeOpacity={0.85}
-        >
-          <MaterialCommunityIcons name="trash-can-outline" size={18} color="#dc2626" />
-          <Text style={styles.deleteBtnText}>{deleting ? 'Deleting…' : 'Delete Transaction'}</Text>
-        </TouchableOpacity>
+        {/* Action buttons */}
+        <View style={styles.actions}>
+          <TouchableOpacity style={styles.actionBtn} onPress={handleRecategorize} activeOpacity={0.7}>
+            <Text style={styles.actionBtnText}>Recategorize</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionBtn} onPress={handleAddNote} activeOpacity={0.7}>
+            <Text style={styles.actionBtnText}>{tx.note ? 'Edit note' : 'Add note'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {deleting && (
+          <View style={styles.deletingRow}>
+            <ActivityIndicator size="small" color="#ef4444" />
+            <Text style={styles.deletingText}>Deleting…</Text>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function Row({
-  icon,
+function DetailRow({
   label,
   value,
-  valueColor,
   mono,
+  truncate,
 }: {
-  icon: string;
   label: string;
   value: string;
-  valueColor?: string;
   mono?: boolean;
+  truncate?: boolean;
 }) {
   return (
     <View style={styles.row}>
-      <View style={styles.rowLeft}>
-        <MaterialCommunityIcons name={icon as any} size={16} color="#aaa" />
-        <Text style={styles.rowLabel}>{label}</Text>
-      </View>
+      <Text style={styles.rowLabel}>{label}</Text>
       <Text
-        style={[styles.rowValue, valueColor ? { color: valueColor, fontWeight: '700' } : null, mono ? styles.mono : null]}
-        numberOfLines={1}
+        style={[styles.rowValue, mono && styles.rowValueMono]}
+        numberOfLines={truncate ? 1 : undefined}
+        ellipsizeMode="tail"
       >
         {value}
       </Text>
@@ -191,76 +295,142 @@ function Row({
   );
 }
 
-function Divider() {
+function CardDivider() {
   return <View style={styles.divider} />;
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#6200ee' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, backgroundColor: BG },
+  center: { justifyContent: 'center', alignItems: 'center' },
 
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 8,
   },
-  backBtn: { width: 32, alignItems: 'flex-start' },
-  headerTitle: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  headerBtn: {
+    width: 38, height: 38,
+    backgroundColor: '#fff',
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+
+  scroll: { paddingHorizontal: 20, paddingBottom: 40 },
 
   hero: {
     alignItems: 'center',
-    paddingTop: 8,
-    paddingBottom: 32,
+    paddingTop: 12,
+    paddingBottom: 28,
     gap: 8,
   },
-  heroIcon: {
+  avatar: {
     width: 80, height: 80, borderRadius: 40,
     justifyContent: 'center', alignItems: 'center',
     marginBottom: 4,
   },
-  heroRecipient: { color: '#fff', fontSize: 22, fontWeight: '700', textAlign: 'center', paddingHorizontal: 24 },
-  heroAmount: { color: '#fff', fontSize: 34, fontWeight: '800', letterSpacing: -1 },
-  typeBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20,
+  avatarText: {
+    fontSize: 34, fontWeight: '700', fontFamily: 'Inter_700Bold',
   },
-  typeBadgeText: { fontSize: 13, fontWeight: '700' },
-
-  scroll: { padding: 16, gap: 12, paddingBottom: 40 },
+  recipientName: {
+    fontSize: 15, color: '#6b7280', fontWeight: '500',
+    fontFamily: 'Inter_500Medium',
+  },
+  amount: {
+    fontSize: 44, fontWeight: '800', letterSpacing: -1.5,
+    fontFamily: 'GeistMono_700Bold',
+  },
+  catPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 7,
+    paddingHorizontal: 14, paddingVertical: 7,
+    borderRadius: 20,
+  },
+  catDot: { width: 8, height: 8, borderRadius: 4 },
+  catPillText: {
+    fontSize: 13, fontWeight: '600',
+    fontFamily: 'Inter_600SemiBold',
+  },
 
   card: {
     backgroundColor: '#fff',
-    borderRadius: 20,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+    marginBottom: 20,
     overflow: 'hidden',
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    gap: 20,
   },
-  rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  rowLabel: { color: '#888', fontSize: 14 },
-  rowValue: { color: '#1a1a1a', fontSize: 14, fontWeight: '500', flex: 1, textAlign: 'right' },
-  mono: { fontFamily: 'monospace', fontSize: 12, color: '#555' },
-  divider: { height: 1, backgroundColor: '#f3f4f6', marginHorizontal: 16 },
-
-  editBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: '#6200ee',
-    borderRadius: 14, paddingVertical: 15,
+  rowLabel: {
+    fontSize: 14, color: '#9ca3af', fontWeight: '500',
+    fontFamily: 'Inter_500Medium', flexShrink: 0,
   },
-  editBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  rowValue: {
+    fontSize: 14, fontWeight: '600', color: '#111827',
+    fontFamily: 'Inter_600SemiBold',
+    textAlign: 'right', flex: 1,
+  },
+  rowValueMono: {
+    fontFamily: 'GeistMono_400Regular', fontSize: 13, color: '#374151',
+  },
+  divider: { height: 1, backgroundColor: '#f3f4f6' },
 
-  deleteBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+  smsSection: { marginBottom: 20 },
+  smsSectionLabel: {
+    fontSize: 11, fontWeight: '700', color: '#9ca3af',
+    letterSpacing: 0.8, fontFamily: 'Inter_700Bold',
+    marginBottom: 8, paddingLeft: 2,
+  },
+  smsBox: {
+    backgroundColor: '#ededeb',
+    borderRadius: 12,
+    padding: 16,
+  },
+  smsText: {
+    fontSize: 13, color: '#6b7280', lineHeight: 20,
+    fontFamily: 'Inter_400Regular',
+  },
+
+  actions: { flexDirection: 'row', gap: 12 },
+  actionBtn: {
+    flex: 1,
     backgroundColor: '#fff',
-    borderRadius: 14, paddingVertical: 15,
-    borderWidth: 1.5, borderColor: '#fecaca',
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
-  deleteBtnText: { color: '#dc2626', fontWeight: '700', fontSize: 15 },
+  actionBtnText: {
+    fontSize: 15, fontWeight: '600', color: '#111827',
+    fontFamily: 'Inter_600SemiBold',
+  },
+
+  deletingRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, marginTop: 20,
+  },
+  deletingText: {
+    fontSize: 13, color: '#ef4444', fontFamily: 'Inter_400Regular',
+  },
 });
