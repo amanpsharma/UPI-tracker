@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSignIn, useSSO, useAuth } from '@clerk/clerk-expo';
+import { useSignIn, useSSO } from '@clerk/clerk-expo';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { router } from 'expo-router';
@@ -26,7 +26,6 @@ const SOCIAL = [
 export default function SignIn() {
   const { signIn, setActive, isLoaded } = useSignIn();
   const { startSSOFlow } = useSSO();
-  const { isSignedIn } = useAuth();
 
   const [tab, setTab] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
@@ -37,7 +36,8 @@ export default function SignIn() {
   const [ssoLoading, setSsoLoading] = useState<OAuthStrategy | null>(null);
   const [error, setError] = useState('');
 
-  if (isSignedIn) { router.replace('/(tabs)/'); return null; }
+  // Auth-layout redirect handles navigation when isSignedIn becomes true.
+  // We don't router.replace here to avoid racing with that redirect.
 
   const handleSignIn = async () => {
     if (!isLoaded) return;
@@ -46,14 +46,23 @@ export default function SignIn() {
     setLoading(true);
     setError('');
     try {
+      console.log('[SignIn] calling signIn.create…');
       const result = await signIn!.create({ identifier: email.trim(), password });
+      console.log(
+        '[SignIn] signIn.create returned, status=', result.status,
+        'createdSessionId=', result.createdSessionId,
+      );
       if (result.status === 'complete') {
+        console.log('[SignIn] calling setActive…');
         await setActive({ session: result.createdSessionId });
-        router.replace('/(tabs)/');
+        console.log('[SignIn] setActive resolved — Clerk should report isSignedIn=true now');
+        // Don't navigate here — (auth)/_layout.tsx redirects to /(tabs)/ once isSignedIn=true
       } else {
-        setError('Sign-in incomplete. Check your credentials.');
+        console.warn('[SignIn] status not complete:', result.status);
+        setError(`Sign-in incomplete (status: ${result.status}). Check your credentials.`);
       }
     } catch (err: any) {
+      console.error('[SignIn] error:', err?.errors ?? err?.message ?? err);
       setError(err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ?? err?.message ?? 'Sign-in failed.');
     } finally {
       setLoading(false);

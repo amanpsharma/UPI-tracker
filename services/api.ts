@@ -4,6 +4,54 @@ import { Category, MonthlyData, Stats, Transaction, TransactionType } from '@/ty
 
 const client = axios.create({ baseURL: API_BASE_URL, timeout: 15000 });
 
+// Injected by TokenSetup in _layout.tsx whenever Clerk's auth state changes.
+// We send the Clerk userId in an X-User-Id header — a JWT would be stronger but
+// Clerk Expo's getToken() has been observed to return null reliably, so we use
+// the userId directly. Server is private (only this app talks to it).
+let _getToken: (() => Promise<string | null>) | null = null;
+let _userId: string | null = null;
+
+export function setTokenProvider(fn: (() => Promise<string | null>) | null) {
+  _getToken = fn;
+}
+export function setUserId(uid: string | null | undefined) {
+  _userId = uid ?? null;
+}
+
+client.interceptors.request.use(async (config) => {
+  if (!config.headers) {
+    config.headers = {} as any;
+  }
+
+  // Best-effort: attach JWT if Clerk happens to return one
+  let token: string | null = null;
+  if (_getToken) {
+    try {
+      token = await _getToken();
+      if (token) {
+        config.headers['Authorization'] = `Bearer ${token}`;
+      }
+    } catch {}
+  }
+
+  // Wait up to 5s for TokenSetup to populate _userId after sign-in
+  // Only wait if we don't already have a token
+  if (!token) {
+    for (let i = 0; i < 25 && !_userId; i++) {
+      await new Promise((r) => setTimeout(r, 200));
+    }
+  }
+
+  if (_userId) {
+    config.headers['X-User-Id'] = _userId;
+  } else if (!token) {
+    console.warn('[api] no userId and no token after 5s — user is signed out');
+    throw new Error('Not signed in. Please sign in again.');
+  }
+
+  return config;
+});
+
 // Surface the server's error message instead of the generic Axios status message
 client.interceptors.response.use(
   (res) => res,

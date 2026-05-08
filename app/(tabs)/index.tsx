@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   View, ScrollView, StyleSheet, RefreshControl, AppState, AppStateStatus,
-  Platform, TouchableOpacity, ActivityIndicator,
+  Platform, TouchableOpacity, ActivityIndicator, Alert,
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -94,10 +94,13 @@ export default function Dashboard() {
       const { imported } = await syncSmsToMongo();
       if (imported > 0) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        await load();
       }
-    } catch {}
-    setSyncing(false);
+      await load();
+    } catch (err: any) {
+      Alert.alert('Sync failed', err?.message ?? 'Could not sync SMS transactions.');
+    } finally {
+      setSyncing(false);
+    }
   };
 
   // --- Derived values ---

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   View, StyleSheet, KeyboardAvoidingView, Platform,
   TouchableOpacity, ScrollView, TextInput as RNTextInput,
@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth, useSignUp, useSSO } from '@clerk/clerk-expo';
+import { useSignUp, useSSO } from '@clerk/clerk-expo';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { router } from 'expo-router';
@@ -30,7 +30,6 @@ function makeUsername(email: string) {
 
 export default function SignUp() {
   const { signUp, setActive, isLoaded } = useSignUp();
-  const { isSignedIn, isLoaded: authLoaded } = useAuth();
   const { startSSOFlow } = useSSO();
 
   const [tab, setTab] = useState<'email' | 'phone'>('email');
@@ -46,9 +45,8 @@ export default function SignUp() {
   const [ssoLoading, setSsoLoading] = useState<OAuthStrategy | null>(null);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (authLoaded && isSignedIn) router.replace('/(tabs)/');
-  }, [authLoaded, isSignedIn]);
+  // (auth)/_layout.tsx redirects to /(tabs)/ once isSignedIn=true.
+  // We don't need to navigate manually here.
 
   const handleSignUp = async () => {
     if (!isLoaded || !signUp) return;

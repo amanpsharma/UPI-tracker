@@ -1,14 +1,7 @@
-import { useAuth } from '@clerk/clerk-expo';
-import { Redirect, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
 
+// AuthGuard in app/_layout.tsx handles "signed-in user on auth screens → /(tabs)/" routing.
 export default function AuthLayout() {
-  const { isSignedIn, isLoaded } = useAuth();
-
-  // Already signed in — send straight to the app
-  if (isLoaded && isSignedIn) {
-    return <Redirect href="/(tabs)/" />;
-  }
-
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="sign-in" />

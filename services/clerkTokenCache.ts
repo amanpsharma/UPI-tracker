@@ -1,16 +1,24 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import type { TokenCache } from '@clerk/clerk-expo/dist/cache/types';
 
-// AsyncStorage persists across dev rebuilds on Android.
-// SecureStore gets wiped whenever the APK is reinstalled during development.
+// SecureStore is the recommended cache for Clerk on native — AsyncStorage was
+// observed to lose the session token, causing isSignedIn to flip back to false.
 export const tokenCache: TokenCache = {
   async getToken(key: string) {
-    return AsyncStorage.getItem(key);
+    try {
+      return await SecureStore.getItemAsync(key);
+    } catch {
+      return null;
+    }
   },
   async saveToken(key: string, value: string) {
-    return AsyncStorage.setItem(key, value);
+    try {
+      await SecureStore.setItemAsync(key, value);
+    } catch {}
   },
   async clearToken(key: string) {
-    return AsyncStorage.removeItem(key);
+    try {
+      await SecureStore.deleteItemAsync(key);
+    } catch {}
   },
 };

@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { Category } from '@/types';
 
 export const API_BASE_URL = 'https://seablack.onrender.com/api';

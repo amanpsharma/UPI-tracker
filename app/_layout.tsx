@@ -1,7 +1,15 @@
 import { useEffect } from "react";
-import { ClerkProvider, ClerkLoaded } from "@clerk/clerk-expo";
+import {
+  ClerkProvider,
+  ClerkLoaded,
+  useAuth,
+  useUser,
+  useSession,
+  useClerk,
+} from "@clerk/clerk-expo";
 import { tokenCache } from "@/services/clerkTokenCache";
-import { Stack } from "expo-router";
+import { setTokenProvider, setUserId } from "@/services/api";
+import { Stack, useRouter, useSegments } from "expo-router";
 import {
   PaperProvider,
   MD3LightTheme,
@@ -51,6 +59,96 @@ const theme = {
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
+// Single source of truth for auth-based routing. Fires AFTER render commits so
+// Clerk's state is stable — eliminates the redirect race that caused the loop
+// between (auth) and (tabs) layouts.
+function AuthGuard() {
+  const { isLoaded, isSignedIn } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    const inAuthGroup = segments[0] === '(auth)';
+    const inOnboarding = segments[0] === 'onboarding';
+    const inSsoCallback = segments[0] === 'sso-callback';
+
+    // Allow onboarding & SSO callback to render regardless of auth state
+    if (inOnboarding || inSsoCallback) return;
+
+    if (isSignedIn && inAuthGroup) {
+      router.replace('/(tabs)/');
+    } else if (!isSignedIn && !inAuthGroup) {
+      router.replace('/(auth)/sign-in');
+    }
+  }, [isLoaded, isSignedIn, segments, router]);
+
+  return null;
+}
+
+// Wires up the userId for API requests on every render. Tries every Clerk API
+// available because useAuth().userId has been observed to stay null even when
+// the user is signed in. Whichever source has a value first wins.
+function TokenSetup() {
+  const { getToken: getTokenFromAuth, userId: authUserId, isSignedIn, isLoaded } = useAuth();
+  const { user } = useUser();
+  const { session } = useSession();
+  const clerk = useClerk();
+
+  const resolvedId =
+    authUserId ||
+    user?.id ||
+    session?.user?.id ||
+    clerk?.user?.id ||
+    clerk?.session?.user?.id ||
+    null;
+
+  console.log(
+    '[TokenSetup] isLoaded=', isLoaded,
+    'isSignedIn=', isSignedIn,
+    'authUserId=', authUserId,
+    'user?.id=', user?.id,
+    'session?.user?.id=', session?.user?.id,
+    'clerk?.user?.id=', clerk?.user?.id,
+    '→ resolvedId=', resolvedId,
+  );
+
+  // Only clobber _userId if we are SURE the user is signed out.
+  // Otherwise update with whatever we have (or keep previous if all null in a transient render).
+  if (resolvedId) {
+    setUserId(resolvedId);
+  } else if (isLoaded && isSignedIn === false) {
+    setUserId(null);
+  }
+
+  setTokenProvider(async () => {
+    try {
+      const t = await getTokenFromAuth();
+      if (t) return t;
+    } catch {}
+    try {
+      const t = await getTokenFromAuth({ skipCache: true });
+      if (t) return t;
+    } catch {}
+    if (session) {
+      try {
+        const t = await session.getToken({ skipCache: true });
+        if (t) return t;
+      } catch {}
+    }
+    if (clerk?.session) {
+      try {
+        const t = await clerk.session.getToken({ skipCache: true });
+        if (t) return t;
+      } catch {}
+    }
+    return null;
+  });
+
+  return null;
+}
+
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     Inter_400Regular,
@@ -76,6 +174,8 @@ export default function RootLayout() {
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <ClerkLoaded>
+        <TokenSetup />
+        <AuthGuard />
         <GestureHandlerRootView style={{ flex: 1 }}>
           <PaperProvider theme={theme}>
             <Stack screenOptions={{ headerShown: false }}>

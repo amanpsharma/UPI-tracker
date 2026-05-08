@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUser, useAuth } from '@clerk/clerk-expo';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
+import { format } from 'date-fns';
 
 const BG = '#f5f4f0';
 
@@ -50,8 +51,19 @@ export default function SettingsScreen() {
     || emailAddress.split('@')[0]
     || 'User';
 
-  const initials = displayName?.[0]?.toUpperCase() ?? 'U';
+  const initials = displayName
+    .split(' ')
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .join('');
   const av = getAvatarColor(displayName || 'U');
+
+  const memberSince = user?.createdAt
+    ? format(new Date(user.createdAt), 'MMM yyyy')
+    : null;
+
+  const isEmailVerified =
+    user?.emailAddresses?.[0]?.verification?.status === 'verified';
 
   const handleSignOut = () => {
     Alert.alert('Sign out', 'Are you sure you want to sign out?', [
@@ -62,7 +74,7 @@ export default function SettingsScreen() {
         onPress: async () => {
           try {
             await signOut();
-            router.replace('/(auth)/sign-in');
+            // (tabs)/_layout.tsx redirects to /(auth)/sign-in once isSignedIn=false
           } catch (e) {
             Alert.alert('Error', 'Failed to sign out. Please try again.');
           }
@@ -111,20 +123,45 @@ export default function SettingsScreen() {
         <Text style={styles.title}>Settings</Text>
 
         {/* Profile card */}
-        <TouchableOpacity
-          style={styles.profileCard}
-          activeOpacity={0.7}
-          onPress={() => emailAddress && Alert.alert('Profile', `Signed in as ${emailAddress}`)}
-        >
-          <View style={[styles.avatar, { backgroundColor: av.bg }]}>
-            <Text style={[styles.avatarText, { color: av.text }]}>{initials}</Text>
+        <View style={styles.profileCard}>
+          {/* Avatar */}
+          <View style={styles.profileTop}>
+            <View style={[styles.avatar, { backgroundColor: av.bg }]}>
+              <Text style={[styles.avatarText, { color: av.text }]}>
+                {isLoaded ? initials : '?'}
+              </Text>
+            </View>
+            {isEmailVerified && (
+              <View style={styles.verifiedBadge}>
+                <MaterialCommunityIcons name="check-circle" size={14} color="#16a34a" />
+                <Text style={styles.verifiedText}>Verified</Text>
+              </View>
+            )}
           </View>
-          <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{isLoaded ? displayName : '—'}</Text>
-            <Text style={styles.profileEmail} numberOfLines={1}>{emailAddress}</Text>
-          </View>
-          <MaterialCommunityIcons name="chevron-right" size={20} color="#d1d5db" />
-        </TouchableOpacity>
+
+          {/* Name + email */}
+          {isLoaded ? (
+            <>
+              <Text style={styles.profileName} numberOfLines={1}>{displayName}</Text>
+              {emailAddress ? (
+                <Text style={styles.profileEmail} numberOfLines={1}>{emailAddress}</Text>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <View style={styles.skeletonName} />
+              <View style={styles.skeletonEmail} />
+            </>
+          )}
+
+          {/* Member since */}
+          {memberSince && (
+            <View style={styles.memberRow}>
+              <MaterialCommunityIcons name="calendar-outline" size={13} color="#9ca3af" />
+              <Text style={styles.memberText}>Member since {memberSince}</Text>
+            </View>
+          )}
+        </View>
 
         {/* Settings list */}
         <View style={styles.settingsCard}>
@@ -170,22 +207,36 @@ const styles = StyleSheet.create({
 
   // Profile card
   profileCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: '#fff', borderRadius: 16, padding: 16,
-    marginBottom: 16,
+    backgroundColor: '#fff', borderRadius: 20, padding: 20,
+    marginBottom: 16, alignItems: 'center',
     shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
   },
+  profileTop: { alignItems: 'center', marginBottom: 12 },
   avatar: {
-    width: 48, height: 48, borderRadius: 24,
+    width: 72, height: 72, borderRadius: 36,
     justifyContent: 'center', alignItems: 'center',
+    marginBottom: 8,
   },
-  avatarText: { fontSize: 20, fontWeight: '700' },
-  profileInfo: { flex: 1 },
-  profileName: { fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 2 },
-  profileEmail: { fontSize: 12, color: '#9ca3af', fontWeight: '500' },
-  skeletonName: { height: 14, width: 120, backgroundColor: '#f3f4f6', borderRadius: 6, marginBottom: 6 },
-  skeletonEmail: { height: 11, width: 180, backgroundColor: '#f3f4f6', borderRadius: 6 },
+  avatarText: { fontSize: 28, fontWeight: '800', fontFamily: 'Inter_800ExtraBold' },
+  verifiedBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#f0fdf4', borderRadius: 20,
+    paddingHorizontal: 10, paddingVertical: 4,
+  },
+  verifiedText: { fontSize: 12, color: '#16a34a', fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
+  profileName: {
+    fontSize: 20, fontWeight: '800', color: '#111827',
+    fontFamily: 'Inter_800ExtraBold', textAlign: 'center', marginBottom: 4,
+  },
+  profileEmail: {
+    fontSize: 13, color: '#9ca3af', fontWeight: '500',
+    fontFamily: 'Inter_500Medium', textAlign: 'center', marginBottom: 10,
+  },
+  memberRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  memberText: { fontSize: 12, color: '#9ca3af', fontFamily: 'Inter_400Regular' },
+  skeletonName: { height: 20, width: 140, backgroundColor: '#f3f4f6', borderRadius: 8, marginBottom: 8 },
+  skeletonEmail: { height: 13, width: 180, backgroundColor: '#f3f4f6', borderRadius: 6, marginBottom: 10 },
 
   // Settings card
   settingsCard: {

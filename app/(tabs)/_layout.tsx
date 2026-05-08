@@ -1,12 +1,13 @@
 import { useAuth } from "@clerk/clerk-expo";
 import { Tabs } from "expo-router";
-import { ActivityIndicator, Platform, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
+// AuthGuard in app/_layout.tsx handles "signed-out user on tabs → /(auth)/sign-in" routing.
 export default function TabsLayout() {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded } = useAuth();
 
-  if (!isLoaded || isSignedIn === undefined) {
+  if (!isLoaded) {
     return (
       <View
         style={{

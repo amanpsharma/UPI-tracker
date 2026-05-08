@@ -25,16 +25,14 @@
       "permissions": [
         "android.permission.READ_SMS",
         "android.permission.RECEIVE_SMS"
-      ]
+      ],
+      "usesCleartextTraffic": true
     },
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
-    "plugins": [
-      "expo-router",
-      "expo-font"
-    ],
+    "plugins": ["expo-router", "expo-font"],
     "scheme": "upi-tracker"
   }
 }
