@@ -1,6 +1,13 @@
-import { useEffect } from 'react';
-import { View, ViewStyle, StyleSheet, Dimensions } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming, withSequence, Easing } from 'react-native-reanimated';
+import { useEffect } from "react";
+import { View, ViewStyle, StyleSheet, Dimensions } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+  withSequence,
+  Easing,
+} from "react-native-reanimated";
 
 type Props = {
   width?: number | string;
@@ -9,17 +16,22 @@ type Props = {
   style?: ViewStyle;
 };
 
-export default function Skeleton({ width = '100%', height = 14, radius = 6, style }: Props) {
+export default function Skeleton({
+  width = "100%",
+  height = 14,
+  radius = 6,
+  style,
+}: Props) {
   const opacity = useSharedValue(0.4);
 
   useEffect(() => {
     opacity.value = withRepeat(
       withSequence(
         withTiming(0.85, { duration: 700, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0.4, { duration: 700, easing: Easing.inOut(Easing.ease) })
+        withTiming(0.4, { duration: 700, easing: Easing.inOut(Easing.ease) }),
       ),
       -1,
-      true
+      true,
     );
   }, []);
 
@@ -59,10 +71,10 @@ export function SkeletonCard({ height = 88 }: { height?: number }) {
 }
 
 const styles = StyleSheet.create({
-  base: { backgroundColor: '#e5e7eb' },
+  base: { backgroundColor: "#e5e7eb" },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     paddingHorizontal: 14,
     paddingVertical: 13,

@@ -1,6 +1,10 @@
-import React from 'react';
-import { Pressable, PressableProps, ViewStyle, StyleProp } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import React from "react";
+import { Pressable, PressableProps, ViewStyle, StyleProp } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 
 const AnimatedPressableComponent = Animated.createAnimatedComponent(Pressable);
 
@@ -11,20 +15,24 @@ type AnimatedButtonProps = PressableProps & {
   children: React.ReactNode;
 };
 
-export default function AnimatedButton({ 
-  style, 
-  activeScale = 0.96, 
+export default function AnimatedButton({
+  style,
+  activeScale = 0.96,
   activeOpacity = 0.8,
   children,
   onPressIn,
   onPressOut,
-  ...props 
+  ...props
 }: AnimatedButtonProps) {
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
 
   const handlePressIn = (e: any) => {
-    scale.value = withSpring(activeScale, { mass: 0.5, damping: 10, stiffness: 200 });
+    scale.value = withSpring(activeScale, {
+      mass: 0.5,
+      damping: 10,
+      stiffness: 200,
+    });
     opacity.value = withSpring(activeOpacity);
     if (onPressIn) onPressIn(e);
   };

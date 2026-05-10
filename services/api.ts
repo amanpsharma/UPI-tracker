@@ -156,7 +156,7 @@ export const api = {
 
   updateTransaction: async (
     id: string,
-    patch: Partial<Pick<Transaction, 'category' | 'note' | 'amount' | 'recipient'>>,
+    patch: Partial<Pick<Transaction, 'category' | 'note' | 'amount' | 'recipient' | 'upiId' | 'bank' | 'type'>>,
   ): Promise<Transaction> => {
     const { data } = await trackSlowRequest(client.patch<Transaction>(`/transactions/${id}`, patch));
     return data;

@@ -56,6 +56,7 @@ export default function TransactionDetail() {
         recipient: txData.recipient,
         note: txData.note ?? "",
         upiId: txData.upiId ?? "",
+        bank: txData.bank ?? "",
         category: txData.category,
         type: txData.type ?? "sent",
         paidAt: txData.paidAt,

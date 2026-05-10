@@ -32,6 +32,7 @@ export default function EditTransaction() {
     recipient: string;
     note: string;
     upiId: string;
+    bank: string;
     category: string;
     type: string;
     paidAt: string;
@@ -46,7 +47,7 @@ export default function EditTransaction() {
   const [category, setCategory] = useState<Category>(
     (params.category as Category) ?? "Other",
   );
-  const [bank, setBank] = useState("HDFC");
+  const [bank, setBank] = useState(params.bank ?? "HDFC");
   const [showCatPicker, setShowCatPicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [snack, setSnack] = useState("");
@@ -55,6 +56,7 @@ export default function EditTransaction() {
     if (params.amount) setAmount(params.amount);
     if (params.recipient) setRecipient(params.recipient);
     if (params.upiId) setUpiId(params.upiId);
+    if (params.bank) setBank(params.bank);
     if (params.category) setCategory(params.category as Category);
     if (params.type) setTxType(params.type as "sent" | "received");
   }, [params.id]);
@@ -85,6 +87,9 @@ export default function EditTransaction() {
       await api.updateTransaction(params.id!, {
         amount: parsed,
         recipient: recipient.trim(),
+        upiId: upiId.trim(),
+        bank: bank,
+        type: txType,
         note: params.note ?? "",
         category,
       });
