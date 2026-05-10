@@ -88,7 +88,7 @@ export default function Dashboard() {
     // Pull-to-refresh on Android also re-scans SMS so newly arrived UPI payments
     // are imported. We swallow sync errors (no permission, iOS, etc.) and still
     // re-fetch from the server so the UI always updates.
-    if (Platform.OS === 'android') {
+    if (Platform.OS === "android") {
       try {
         await syncSmsToMongo();
       } catch {}
@@ -171,7 +171,7 @@ export default function Dashboard() {
             ? "TODAY"
             : date === yesterday
               ? "YESTERDAY"
-              : format(new Date(tx.paidAt), "MMM d");
+              : format(new Date(tx.paidAt), "MMM d, yyyy");
         map[date] = { label, sentTotal: 0, items: [] };
         order.push(date);
       }
@@ -185,7 +185,10 @@ export default function Dashboard() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Header skeleton */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
@@ -203,9 +206,23 @@ export default function Dashboard() {
               <Skeleton width={80} height={11} radius={4} />
               <Skeleton width={100} height={20} radius={10} />
             </View>
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 16, height: 80, alignItems: 'flex-end' }}>
+            <View
+              style={{
+                flexDirection: "row",
+                gap: 8,
+                marginTop: 16,
+                height: 80,
+                alignItems: "flex-end",
+              }}
+            >
               {[0.3, 0.6, 0.4, 0.8, 0.5, 0.7, 0.9].map((h, i) => (
-                <Skeleton key={i} width={26} height={h * 80} radius={6} style={{ flex: 1 }} />
+                <Skeleton
+                  key={i}
+                  width={26}
+                  height={h * 80}
+                  radius={6}
+                  style={{ flex: 1 }}
+                />
               ))}
             </View>
           </View>
@@ -367,13 +384,13 @@ export default function Dashboard() {
               icon="receipt-text-outline"
               title="No transactions yet"
               body={
-                Platform.OS === 'android'
-                  ? 'Tap below to scan your bank SMS, or add a transaction manually.'
-                  : 'Add your first transaction manually to get started.'
+                Platform.OS === "android"
+                  ? "Tap below to scan your bank SMS, or add a transaction manually."
+                  : "Add your first transaction manually to get started."
               }
               cta={{
-                label: 'Add transaction',
-                onPress: () => router.push('/(tabs)/add'),
+                label: "Add transaction",
+                onPress: () => router.push("/(tabs)/add"),
               }}
             />
           ) : (
