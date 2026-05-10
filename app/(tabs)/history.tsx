@@ -7,25 +7,11 @@ import { format } from 'date-fns';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '@/services/api';
 import { CATEGORY_COLORS } from '@/constants';
+import { CAT_DISPLAY } from '@/constants/ui';
+import { fmtShort } from '@/utils/format';
 import { MonthlyData } from '@/types';
 
 const CHART_HEIGHT = 80;
-
-const CAT_DISPLAY: Record<string, string> = {
-  Food: 'Food & Dining',
-  Transport: 'Transport',
-  Shopping: 'Shopping',
-  Bills: 'Bills & Utilities',
-  Entertainment: 'Entertainment',
-  Health: 'Health',
-  Other: 'Other',
-};
-
-function fmtShort(n: number): string {
-  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
-  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}k`;
-  return `₹${Math.round(n)}`;
-}
 
 function getBarLetter(monthStr: string): string {
   const [y, m] = monthStr.split('-').map(Number);

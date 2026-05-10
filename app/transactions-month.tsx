@@ -11,22 +11,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { api } from '@/services/api';
 import { CATEGORY_COLORS, CATEGORY_ICONS } from '@/constants';
+import { avatarStyle } from '@/constants/ui';
 import { Transaction } from '@/types';
-
-const AVATAR_PALETTE = [
-  { bg: '#fecaca', text: '#dc2626' },
-  { bg: '#fed7aa', text: '#ea580c' },
-  { bg: '#fef08a', text: '#ca8a04' },
-  { bg: '#bbf7d0', text: '#16a34a' },
-  { bg: '#bfdbfe', text: '#2563eb' },
-  { bg: '#ddd6fe', text: '#7c3aed' },
-  { bg: '#fbcfe8', text: '#db2777' },
-  { bg: '#cffafe', text: '#0891b2' },
-];
-
-function avatarStyle(name: string) {
-  return AVATAR_PALETTE[(name || 'U').charCodeAt(0) % AVATAR_PALETTE.length];
-}
 
 function getDayLabel(dateStr: string): string {
   const today = format(new Date(), 'yyyy-MM-dd');

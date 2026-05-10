@@ -40,31 +40,40 @@ function extractRecipientName(body: string): string | null {
     const name = axisMatch[1].trim();
     if (name.length >= 2 && name.length <= 60) return name;
   }
-  // HDFC / standard format: "To <Name> On|At|via|Ref|..."
-  const toMatch = body.match(/\bTo\s+([A-Za-z][A-Za-z\s]+?)\s+(?:On|At|via|Ref|UPI|\d{2}[\/\-])/i);
+  // Standard format: "To <Name> On|At|via|Ref|..." or just "to <Name>" if at the end of the sentence
+  const toMatch = body.match(/\b(?:to|towards)\s+([A-Za-z][A-Za-z\s]+?)(?=\s+(?:on|at|via|ref|upi|\d{2}[\/\-])|\s*$|\.)/i);
   if (toMatch) {
     const name = toMatch[1].trim();
     if (name.length >= 2 && name.length <= 50) return name;
   }
+  // Try finding VPA handle explicitly if we missed "to"
+  const vpaMatch = body.match(/([a-zA-Z0-9._+\-]{2,})@[a-zA-Z]{2,15}/);
+  if (vpaMatch) return vpaMatch[1];
+  
   return null;
 }
 
-// "from Priya Sharma via" / "by Raj Kumar UPI" / "from user on"
+// "from Priya Sharma via" / "by Raj Kumar UPI" / "from user on" / "by VPA"
 function extractSenderName(body: string): string | null {
-  const match = body.match(/\b(?:from|by)\s+([A-Za-z][A-Za-z\s]+?)\s+(?:via|on|UPI|Ref|\d{2}[\/\-])/i);
-  if (!match) return null;
-  const name = match[1].trim();
-  return name.length >= 2 && name.length <= 50 ? name : null;
+  const match = body.match(/\b(?:from|by)\s+([A-Za-z][A-Za-z\s]+?)(?=\s+(?:via|on|upi|ref|\d{2}[\/\-])|\s*$|\.)/i);
+  if (match) {
+    const name = match[1].trim();
+    if (name.length >= 2 && name.length <= 50) return name;
+  }
+  // Try finding VPA handle explicitly
+  const vpaMatch = body.match(/([a-zA-Z0-9._+\-]{2,})@[a-zA-Z]{2,15}/);
+  if (vpaMatch) return vpaMatch[1];
+  return null;
 }
 
 function extractTransactionId(body: string): string {
   // Axis Bank format: UPI/P2A/612472427368/NAME
   const axisMatch = body.match(/UPI\/P2[A-Z]\/(\d{8,})\//i);
   if (axisMatch) return axisMatch[1];
-  // Standard: "UPI Ref 123456", "Ref No 123456", "Txn ID 123456"
+  // Standard: "UPI Ref 123456", "Ref No 123456", "Txn ID 123456", or just plain 12-digit number following UPI
   const match = body.match(
     /(?:UPI\s*Ref(?:erence)?\s*(?:No\.?|ID|#)?|Ref(?:erence)?\s*(?:No\.?|ID|#)?|Txn(?:\s*ID)?|Transaction\s*(?:ID|No\.?))\s*[:\-]?\s*([A-Z0-9]{6,})/i
-  );
+  ) || body.match(/(?:\b|UPI)[^\w\d]*([0-9]{12})\b/i);
   return match ? match[1] : '';
 }
 

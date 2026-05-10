@@ -10,32 +10,14 @@ import { format, isToday, isYesterday } from 'date-fns';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { api } from '@/services/api';
-import { CATEGORY_COLORS, CATEGORIES } from '@/constants';
+import { CATEGORIES } from '@/constants';
+import { CAT_DISPLAY } from '@/constants/ui';
+import CatIcon from '@/components/CatIcon';
+import { showToast } from '@/services/toast';
 import { Category } from '@/types';
 
 const BG = '#f5f4f0';
 const BANKS = ['HDFC', 'ICICI', 'SBI', 'Axis', 'Kotak'];
-const CAT_DISPLAY: Record<string, string> = {
-  Food: 'Food & Dining', Transport: 'Transport', Shopping: 'Shopping',
-  Bills: 'Bills & Utilities', Entertainment: 'Entertainment', Health: 'Health', Other: 'Other',
-};
-const CAT_SHAPE: Record<string, 'circle' | 'square' | 'diamond'> = {
-  Food: 'circle', Transport: 'square', Shopping: 'diamond',
-  Bills: 'circle', Entertainment: 'diamond', Health: 'circle', Other: 'square',
-};
-
-function CatIcon({ cat }: { cat: string }) {
-  const color = CATEGORY_COLORS[cat as Category] ?? '#9ca3af';
-  const shape = CAT_SHAPE[cat] ?? 'circle';
-  if (shape === 'diamond') {
-    return (
-      <View style={{ width: 18, height: 18, alignItems: 'center', justifyContent: 'center' }}>
-        <View style={{ width: 12, height: 12, borderRadius: 2, backgroundColor: color, transform: [{ rotate: '45deg' }] }} />
-      </View>
-    );
-  }
-  return <View style={{ width: 14, height: 14, borderRadius: shape === 'circle' ? 7 : 3, backgroundColor: color }} />;
-}
 
 export default function EditTransaction() {
   const params = useLocalSearchParams<{
@@ -82,6 +64,7 @@ export default function EditTransaction() {
         category,
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showToast('Transaction updated', 'success');
       router.back();
     } catch (err: any) {
       setSnack(err.message ?? 'Failed to save.');
@@ -101,6 +84,7 @@ export default function EditTransaction() {
           try {
             await api.deleteTransaction(params.id!);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            showToast('Transaction deleted', 'success');
             router.replace('/(tabs)/activity');
           } catch {
             setSnack('Failed to delete.');

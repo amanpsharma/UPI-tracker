@@ -1,66 +1,110 @@
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, AxiosHeaders } from 'axios';
 import { API_BASE_URL } from '@/constants';
 import { Category, MonthlyData, Stats, Transaction, TransactionType } from '@/types';
+import { trackSlowRequest } from './serverStatus';
 
-const client = axios.create({ baseURL: API_BASE_URL, timeout: 15000 });
+// Error thrown by the response interceptor — carries the HTTP status alongside the message
+export class ApiError extends Error {
+  status?: number;
+  constructor(message: string, status?: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
 
-// Injected by TokenSetup in _layout.tsx whenever Clerk's auth state changes.
-// We send the Clerk userId in an X-User-Id header — a JWT would be stronger but
-// Clerk Expo's getToken() has been observed to return null reliably, so we use
-// the userId directly. Server is private (only this app talks to it).
+// 60s timeout — Render free tier spins servers down after ~15min idle and the
+// first request takes ~10s to cold-start. Combined with our token-fetch wait,
+// 15s wasn't enough.
+const client = axios.create({ baseURL: API_BASE_URL, timeout: 60000 });
+
+// Injected by TokenSetup in _layout.tsx. Server requires a signature-verified
+// Clerk JWT — the previous X-User-Id-only path is gone (it allowed userId spoofing).
 let _getToken: (() => Promise<string | null>) | null = null;
-let _userId: string | null = null;
+let _isLoaded: boolean = false;
+let _isSignedIn: boolean = false;
 
 export function setTokenProvider(fn: (() => Promise<string | null>) | null) {
   _getToken = fn;
 }
-export function setUserId(uid: string | null | undefined) {
-  _userId = uid ?? null;
+// Kept for backwards-compatibility with existing imports — now a no-op.
+// Server only trusts cryptographically-verified JWTs.
+export function setUserId(_uid: string | null | undefined) {}
+export function setAuthState(isLoaded: boolean, isSignedIn: boolean) {
+  _isLoaded = isLoaded;
+  _isSignedIn = isSignedIn;
 }
 
 client.interceptors.request.use(async (config) => {
   if (!config.headers) {
-    config.headers = {} as any;
+    config.headers = new AxiosHeaders();
   }
 
-  // Best-effort: attach JWT if Clerk happens to return one
-  let token: string | null = null;
-  if (_getToken) {
-    try {
-      token = await _getToken();
-      if (token) {
-        config.headers['Authorization'] = `Bearer ${token}`;
-      }
-    } catch {}
+  // Fail fast if Clerk has confirmed the user is signed out
+  if (_isLoaded && !_isSignedIn) {
+    throw new Error('Not signed in. Request aborted silently.');
   }
 
-  // Wait up to 5s for TokenSetup to populate _userId after sign-in
-  // Only wait if we don't already have a token
-  if (!token) {
-    for (let i = 0; i < 25 && !_userId; i++) {
-      await new Promise((r) => setTimeout(r, 200));
-    }
+  // Wait up to 5s for the token provider to wire up after sign-in
+  for (let i = 0; i < 25 && !_getToken; i++) {
+    if (_isLoaded && !_isSignedIn) throw new Error('Not signed in. Request aborted silently.');
+    await new Promise((r) => setTimeout(r, 200));
   }
-
-  if (_userId) {
-    config.headers['X-User-Id'] = _userId;
-  } else if (!token) {
-    console.warn('[api] no userId and no token after 5s — user is signed out');
+  if (!_getToken) {
     throw new Error('Not signed in. Please sign in again.');
   }
 
+  // Fetch a signed JWT, retrying for ~3s while Clerk's session settles
+  let token: string | null = null;
+  for (let i = 0; i < 6; i++) {
+    try {
+      token = await _getToken();
+    } catch {}
+    if (token) break;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+
+  if (!token) {
+    throw new Error('Session expired. Please sign in again.');
+  }
+
+  config.headers['Authorization'] = `Bearer ${token}`;
   return config;
 });
+
+// Subscribers are notified once when the server returns 401 (session expired
+// or token rejected). _layout.tsx wires this to sign the user out and toast.
+type UnauthorizedListener = () => void;
+const unauthorizedListeners = new Set<UnauthorizedListener>();
+export function onUnauthorized(listener: UnauthorizedListener): () => void {
+  unauthorizedListeners.add(listener);
+  return () => {
+    unauthorizedListeners.delete(listener);
+  };
+}
+
+// Debounce so a burst of 401s (e.g. parallel home+activity refresh) only fires once
+let lastUnauthorizedAt = 0;
+function notifyUnauthorized() {
+  const now = Date.now();
+  if (now - lastUnauthorizedAt < 3000) return;
+  lastUnauthorizedAt = now;
+  for (const l of unauthorizedListeners) l();
+}
 
 // Surface the server's error message instead of the generic Axios status message
 client.interceptors.response.use(
   (res) => res,
   (err: AxiosError<{ error?: string }>) => {
+    const status = err.response?.status;
     const serverMsg = err.response?.data?.error;
+
+    if (status === 401) {
+      notifyUnauthorized();
+    }
+
     if (serverMsg) {
-      const wrapped = new Error(serverMsg);
-      (wrapped as any).status = err.response?.status;
-      return Promise.reject(wrapped);
+      return Promise.reject(new ApiError(serverMsg, status));
     }
     return Promise.reject(err);
   }
@@ -77,58 +121,58 @@ export const api = {
     skip?: number;
     search?: string;
   }) => {
-    const { data } = await client.get<Transaction[]>('/transactions', { params });
+    const { data } = await trackSlowRequest(client.get<Transaction[]>('/transactions', { params }));
     return data;
   },
 
   getTransaction: async (id: string): Promise<Transaction> => {
-    const { data } = await client.get<Transaction>(`/transactions/${id}`);
+    const { data } = await trackSlowRequest(client.get<Transaction>(`/transactions/${id}`));
     return data;
   },
 
   getStats: async (month?: string): Promise<Stats> => {
-    const { data } = await client.get<Stats>('/transactions/stats', {
-      params: month ? { month } : undefined,
-    });
+    const { data } = await trackSlowRequest(
+      client.get<Stats>('/transactions/stats', { params: month ? { month } : undefined }),
+    );
     return data;
   },
 
   getTrend: async (days = 30): Promise<{ date: string; total: number; count: number }[]> => {
-    const { data } = await client.get('/transactions/trend', { params: { days } });
+    const { data } = await trackSlowRequest(client.get('/transactions/trend', { params: { days } }));
     return data;
   },
 
   addTransaction: async (tx: Omit<Transaction, '_id' | 'createdAt'>): Promise<Transaction> => {
-    const { data } = await client.post<Transaction>('/transactions', tx);
+    const { data } = await trackSlowRequest(client.post<Transaction>('/transactions', tx));
     return data;
   },
 
   bulkAdd: async (transactions: Omit<Transaction, '_id' | 'createdAt'>[]): Promise<number> => {
-    const { data } = await client.post<{ inserted: number }>('/transactions/bulk', {
-      transactions,
-    });
+    const { data } = await trackSlowRequest(
+      client.post<{ inserted: number }>('/transactions/bulk', { transactions }),
+    );
     return data.inserted;
   },
 
   updateTransaction: async (
     id: string,
-    patch: Partial<Pick<Transaction, 'category' | 'note' | 'amount' | 'recipient'>>
+    patch: Partial<Pick<Transaction, 'category' | 'note' | 'amount' | 'recipient'>>,
   ): Promise<Transaction> => {
-    const { data } = await client.patch<Transaction>(`/transactions/${id}`, patch);
+    const { data } = await trackSlowRequest(client.patch<Transaction>(`/transactions/${id}`, patch));
     return data;
   },
 
   deleteTransaction: async (id: string): Promise<void> => {
-    await client.delete(`/transactions/${id}`);
+    await trackSlowRequest(client.delete(`/transactions/${id}`));
   },
 
   getTransactionCount: async (): Promise<number> => {
-    const { data } = await client.get<{ count: number }>('/transactions/count');
+    const { data } = await trackSlowRequest(client.get<{ count: number }>('/transactions/count'));
     return data.count;
   },
 
   getMonthly: async (): Promise<MonthlyData[]> => {
-    const { data } = await client.get<MonthlyData[]>('/transactions/monthly');
+    const { data } = await trackSlowRequest(client.get<MonthlyData[]>('/transactions/monthly'));
     return data;
   },
 };

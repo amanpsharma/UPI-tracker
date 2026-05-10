@@ -8,41 +8,13 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { api } from '@/services/api';
 import { CATEGORY_COLORS, CATEGORIES } from '@/constants';
+import { avatarStyle, CAT_DISPLAY, CAT_SHAPE } from '@/constants/ui';
+import { showToast } from '@/services/toast';
 import { Category } from '@/types';
 
 const BG = '#f5f4f0';
 
-const AVATAR_PALETTE = [
-  { bg: '#fecaca', text: '#dc2626' },
-  { bg: '#fed7aa', text: '#ea580c' },
-  { bg: '#fef08a', text: '#ca8a04' },
-  { bg: '#bbf7d0', text: '#16a34a' },
-  { bg: '#bfdbfe', text: '#2563eb' },
-  { bg: '#ddd6fe', text: '#7c3aed' },
-  { bg: '#fbcfe8', text: '#db2777' },
-  { bg: '#cffafe', text: '#0891b2' },
-];
-
-const CAT_DISPLAY: Record<string, string> = {
-  Food: 'Food & Dining', Transport: 'Transport', Shopping: 'Shopping',
-  Bills: 'Bills & Utilities', Entertainment: 'Entertainment', Health: 'Health', Other: 'Other',
-};
-
-// Alternate icon shapes to match the design's visual variety
-const CAT_SHAPE: Record<string, 'circle' | 'square' | 'diamond'> = {
-  Food: 'circle',
-  Transport: 'square',
-  Shopping: 'diamond',
-  Bills: 'circle',
-  Entertainment: 'diamond',
-  Health: 'circle',
-  Other: 'square',
-};
-
-function avatarStyle(name: string) {
-  return AVATAR_PALETTE[(name || 'U').charCodeAt(0) % AVATAR_PALETTE.length];
-}
-
+// Local CatIcon — slightly larger than the shared one to match this screen's design.
 function CatIcon({ cat }: { cat: string }) {
   const color = CATEGORY_COLORS[cat as Category] ?? '#9ca3af';
   const shape = CAT_SHAPE[cat] ?? 'circle';
@@ -83,8 +55,10 @@ export default function CategorizeScreen() {
     try {
       await api.updateTransaction(params.id!, { category: selected });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showToast(`Categorized as ${selected}`, 'success');
       router.back();
-    } catch {
+    } catch (err: any) {
+      showToast(err?.message ?? 'Failed to update category', 'error');
       router.back();
     } finally {
       setSaving(false);

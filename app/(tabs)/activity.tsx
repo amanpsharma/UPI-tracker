@@ -10,31 +10,14 @@ import { useFocusEffect, router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '@/services/api';
 import { CATEGORIES, CATEGORY_COLORS } from '@/constants';
+import { avatarStyle } from '@/constants/ui';
+import { fmtShort } from '@/utils/format';
 import { Category, Transaction, TransactionType } from '@/types';
 import SwipeableRow from '@/components/SwipeableRow';
+import Skeleton, { SkeletonTxRow } from '@/components/Skeleton';
+import EmptyState from '@/components/EmptyState';
 
 const PAGE_SIZE = 50;
-
-const AVATAR_PALETTE = [
-  { bg: '#fecaca', text: '#dc2626' },
-  { bg: '#fed7aa', text: '#ea580c' },
-  { bg: '#fef08a', text: '#ca8a04' },
-  { bg: '#bbf7d0', text: '#16a34a' },
-  { bg: '#bfdbfe', text: '#2563eb' },
-  { bg: '#ddd6fe', text: '#7c3aed' },
-  { bg: '#fbcfe8', text: '#db2777' },
-  { bg: '#cffafe', text: '#0891b2' },
-];
-
-function avatarStyle(name: string) {
-  return AVATAR_PALETTE[(name || 'U').charCodeAt(0) % AVATAR_PALETTE.length];
-}
-
-function fmtShort(n: number): string {
-  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
-  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}k`;
-  return `₹${Math.round(n)}`;
-}
 
 type DayGroup = {
   date: string;
@@ -214,6 +197,15 @@ export default function ActivityScreen() {
     </View>
   );
 
+  // Total spent (sent only) across loaded matches — shown in the search summary
+  const searchSpentTotal = useMemo(() => {
+    if (!debouncedSearch.trim()) return 0;
+    return transactions.reduce(
+      (sum, tx) => sum + ((tx.type ?? 'sent') === 'sent' ? tx.amount : 0),
+      0,
+    );
+  }, [transactions, debouncedSearch]);
+
   const ListFooter = () => {
     if (loadingMore) {
       return (
@@ -223,6 +215,28 @@ export default function ActivityScreen() {
         </View>
       );
     }
+
+    const hasSearch = debouncedSearch.trim().length > 0;
+
+    // Search summary — only shown when there's an active search and results
+    if (hasSearch && !hasMore && transactions.length > 0) {
+      return (
+        <View style={styles.searchSummary}>
+          <View style={styles.searchSummaryRow}>
+            <Text style={styles.searchSummaryLabel}>Matches</Text>
+            <Text style={styles.searchSummaryValue}>{transactions.length}</Text>
+          </View>
+          <View style={styles.searchSummaryDivider} />
+          <View style={styles.searchSummaryRow}>
+            <Text style={styles.searchSummaryLabel}>Total spent</Text>
+            <Text style={styles.searchSummarySpent}>
+              -₹{searchSpentTotal.toLocaleString('en-IN')}
+            </Text>
+          </View>
+        </View>
+      );
+    }
+
     if (!hasMore && transactions.length > 0) {
       return (
         <View style={styles.footer}>
@@ -315,8 +329,19 @@ export default function ActivityScreen() {
 
       {/* ── List ── */}
       {loading ? (
-        <View style={styles.center}>
-          <RNActivityIndicator size="large" color="#111827" />
+        <View style={styles.list}>
+          {[0, 1, 2].map((i) => (
+            <View key={i} style={{ marginBottom: 20 }}>
+              <View style={styles.dayHeader}>
+                <Skeleton width={70} height={11} radius={4} />
+                <Skeleton width={50} height={11} radius={4} />
+              </View>
+              <View style={styles.dayCard}>
+                <SkeletonTxRow />
+                <SkeletonTxRow />
+              </View>
+            </View>
+          ))}
         </View>
       ) : (
         <FlatList
@@ -330,19 +355,28 @@ export default function ActivityScreen() {
           onEndReachedThreshold={0.3}
           ListFooterComponent={<ListFooter />}
           ListEmptyComponent={
-            <View style={styles.emptyBox}>
-              <MaterialCommunityIcons
-                name={error ? 'wifi-off' : 'receipt-text-outline'}
-                size={40}
-                color="#e5e7eb"
+            error ? (
+              <EmptyState
+                icon="wifi-off"
+                tint="#ef4444"
+                title="Couldn't load transactions"
+                body={error}
+                cta={{ label: 'Retry', onPress: load }}
               />
-              <Text style={[styles.emptyText, error ? { color: '#ef4444' } : null]}>
-                {error || (search || filterCategory ? 'No results found.' : 'No transactions yet.')}
-              </Text>
-              {!error && !search && !filterCategory && (
-                <Text style={styles.emptyHint}>Sync from SMS or add manually.</Text>
-              )}
-            </View>
+            ) : search || filterCategory ? (
+              <EmptyState
+                icon="magnify-close"
+                title="No matches"
+                body={`Nothing matches “${search}”. Try a different search or clear the filters.`}
+              />
+            ) : (
+              <EmptyState
+                icon="receipt-text-outline"
+                title="No transactions yet"
+                body="Sync your bank SMS or add a transaction manually to get started."
+                cta={{ label: 'Add transaction', onPress: () => router.push('/(tabs)/add') }}
+              />
+            )
           }
         />
       )}
@@ -410,6 +444,20 @@ const styles = StyleSheet.create({
 
   footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, paddingVertical: 20 },
   footerText: { fontSize: 13, color: '#9ca3af', fontWeight: '500', fontFamily: 'Inter_500Medium' },
+
+  searchSummary: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    paddingHorizontal: 16, paddingVertical: 14,
+    marginTop: 4, marginBottom: 20,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+  },
+  searchSummaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  searchSummaryLabel: { fontSize: 13, color: '#6b7280', fontFamily: 'Inter_500Medium' },
+  searchSummaryValue: { fontSize: 14, fontWeight: '700', color: '#111827', fontFamily: 'Inter_700Bold' },
+  searchSummarySpent: { fontSize: 16, fontWeight: '800', color: '#dc2626', fontFamily: 'GeistMono_700Bold' },
+  searchSummaryDivider: { height: 1, backgroundColor: '#f3f4f6', marginVertical: 10 },
 
   emptyBox: { alignItems: 'center', paddingTop: 60, gap: 10 },
   emptyText: { color: '#9ca3af', fontSize: 15, fontWeight: '500', fontFamily: 'Inter_500Medium' },

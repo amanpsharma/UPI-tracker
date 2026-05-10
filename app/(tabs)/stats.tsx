@@ -8,29 +8,11 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { PieChart } from 'react-native-gifted-charts';
 import { api } from '@/services/api';
 import { CATEGORY_COLORS, CATEGORY_ICONS } from '@/constants';
-import { Stats, Category } from '@/types';
+import { CAT_DISPLAY } from '@/constants/ui';
+import { fmtShort, fmtFull } from '@/utils/format';
+import { Stats } from '@/types';
 
 const BG = '#f5f4f0';
-
-const CAT_DISPLAY: Partial<Record<Category, string>> = {
-  Food: 'Food & Dining',
-  Bills: 'Bills & Utilities',
-  Transport: 'Transport',
-  Shopping: 'Shopping',
-  Entertainment: 'Entertainment',
-  Health: 'Health',
-  Other: 'Other',
-};
-
-function fmtShort(n: number): string {
-  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
-  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}k`;
-  return `₹${Math.round(n)}`;
-}
-
-function fmtFull(n: number): string {
-  return `₹${n.toLocaleString('en-IN')}`;
-}
 
 const TODAY = new Date();
 

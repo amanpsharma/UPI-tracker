@@ -8,34 +8,11 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { api } from '@/services/api';
 import { CATEGORY_COLORS } from '@/constants';
+import { avatarStyle, CAT_DISPLAY } from '@/constants/ui';
+import { showToast } from '@/services/toast';
 import { Transaction } from '@/types';
 
 const BG = '#f5f4f0';
-
-const AVATAR_PALETTE = [
-  { bg: '#fecaca', text: '#dc2626' },
-  { bg: '#fed7aa', text: '#ea580c' },
-  { bg: '#fef08a', text: '#ca8a04' },
-  { bg: '#bbf7d0', text: '#16a34a' },
-  { bg: '#bfdbfe', text: '#2563eb' },
-  { bg: '#ddd6fe', text: '#7c3aed' },
-  { bg: '#fbcfe8', text: '#db2777' },
-  { bg: '#cffafe', text: '#0891b2' },
-];
-
-const CAT_DISPLAY: Record<string, string> = {
-  Food: 'Food & Dining',
-  Transport: 'Transport',
-  Shopping: 'Shopping',
-  Bills: 'Bills & Utilities',
-  Entertainment: 'Entertainment',
-  Health: 'Health',
-  Other: 'Other',
-};
-
-function avatarStyle(name: string) {
-  return AVATAR_PALETTE[(name || 'U').charCodeAt(0) % AVATAR_PALETTE.length];
-}
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
@@ -90,8 +67,10 @@ export default function TransactionDetail() {
             try {
               await api.deleteTransaction(id!);
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              showToast('Transaction deleted', 'success');
               router.back();
-            } catch {
+            } catch (err: any) {
+              showToast(err?.message ?? 'Failed to delete', 'error');
               setDeleting(false);
             }
           },
@@ -136,8 +115,9 @@ export default function TransactionDetail() {
             const updated = await api.updateTransaction(tx._id, { note: text.trim() });
             setTx(updated);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          } catch {
-            Alert.alert('Error', 'Failed to save note.');
+            showToast('Note saved', 'success');
+          } catch (err: any) {
+            showToast(err?.message ?? 'Failed to save note', 'error');
           }
         },
         'plain-text',

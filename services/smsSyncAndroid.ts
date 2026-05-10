@@ -1,7 +1,38 @@
 import { PermissionsAndroid, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { parseUpiSms, parsedToTransaction } from './smsParser';
 import { api } from './api';
 import { Transaction } from '@/types';
+
+// Persist the last successful sync timestamp so subsequent scans only read NEW
+// SMS messages. Without this, every sync re-scans up to 10 000 historical SMS
+// (slow, especially on the home tab pull-to-refresh).
+const LAST_SYNC_KEY = '@upi_tracker:last_sms_sync_ms';
+const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+
+async function getLastSyncDate(): Promise<Date> {
+  try {
+    const raw = await AsyncStorage.getItem(LAST_SYNC_KEY);
+    if (raw) {
+      const parsed = parseInt(raw, 10);
+      if (!isNaN(parsed) && parsed > 0) return new Date(parsed);
+    }
+  } catch {}
+  // First sync ever — go back a full year
+  return new Date(Date.now() - ONE_YEAR_MS);
+}
+
+async function saveLastSyncDate(date: Date): Promise<void> {
+  try {
+    await AsyncStorage.setItem(LAST_SYNC_KEY, String(date.getTime()));
+  } catch {}
+}
+
+export async function clearSmsSyncTimestamp(): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(LAST_SYNC_KEY);
+  } catch {}
+}
 
 export async function requestSmsPermission(): Promise<boolean> {
   if (Platform.OS !== 'android') return false;
@@ -53,7 +84,7 @@ function findExisting(txs: Transaction[], dedupeKey: string, fp: string): Transa
 }
 
 export async function syncSmsToMongo(
-  sinceDate: Date = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
+  sinceDate?: Date,
 ): Promise<{ scanned: number; found: number; imported: number }> {
   if (Platform.OS !== 'android') {
     throw new Error('SMS sync is only supported on Android.');
@@ -71,9 +102,18 @@ export async function syncSmsToMongo(
     throw new Error('SMS permission denied. Please allow it in device settings.');
   }
 
+  // Default to "messages since the last successful sync" — falls back to 1 year
+  // ago on first run. Caller can still pass an explicit sinceDate to override.
+  // We rewind 5 minutes to handle SMS that arrived during the previous sync.
+  const FIVE_MIN_MS = 5 * 60 * 1000;
+  const effectiveSince =
+    sinceDate ?? new Date((await getLastSyncDate()).getTime() - FIVE_MIN_MS);
+  // Capture the scan-start time so we save it AFTER a successful sync.
+  const scanStartedAt = new Date();
+
   const messages: { body: string; date: string }[] = await new Promise((resolve, reject) => {
     SmsAndroid.list(
-      JSON.stringify({ box: 'inbox', minDate: sinceDate.getTime(), maxCount: 10000 }),
+      JSON.stringify({ box: 'inbox', minDate: effectiveSince.getTime(), maxCount: 10000 }),
       (fail: string) => reject(new Error(`Could not read SMS: ${fail}`)),
       (_count: number, smsList: string) => resolve(JSON.parse(smsList))
     );
@@ -85,7 +125,12 @@ export async function syncSmsToMongo(
     .map((msg) => parseUpiSms(msg.body, new Date(parseInt(msg.date, 10))))
     .filter(Boolean);
 
-  if (parsed.length === 0) return { scanned, found: 0, imported: 0 };
+  if (parsed.length === 0) {
+    // Even if nothing was parsed, advance the timestamp so we don't re-scan the
+    // same messages next time.
+    await saveLastSyncDate(scanStartedAt);
+    return { scanned, found: 0, imported: 0 };
+  }
 
   const candidates = parsed.map((p) => parsedToTransaction(p!));
 
@@ -121,9 +166,12 @@ export async function syncSmsToMongo(
   }
 
   if (newTransactions.length === 0) {
+    await saveLastSyncDate(scanStartedAt);
     return { scanned, found: parsed.length, imported: 0 };
   }
 
   const imported = await api.bulkAdd(newTransactions);
+  // Only persist after a successful bulkAdd so a failed sync re-tries on next call
+  await saveLastSyncDate(scanStartedAt);
   return { scanned, found: parsed.length, imported };
 }

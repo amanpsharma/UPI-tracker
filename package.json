@@ -17,6 +17,7 @@
     "@expo-google-fonts/poppins": "^0.4.1",
     "@expo/vector-icons": "^15.1.1",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/datetimepicker": "8.4.4",
     "axios": "^1.16.0",
     "date-fns": "^4.1.0",
     "expo": "~54.0.33",

@@ -7,7 +7,7 @@ import {
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSignUp, useSSO } from '@clerk/clerk-expo';
-import * as AuthSession from 'expo-auth-session';
+import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -32,7 +32,6 @@ export default function SignUp() {
   const { signUp, setActive, isLoaded } = useSignUp();
   const { startSSOFlow } = useSSO();
 
-  const [tab, setTab] = useState<'email' | 'phone'>('email');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -125,11 +124,68 @@ export default function SignUp() {
     if (ssoLoading) return;
     setSsoLoading(strategy);
     try {
-      const redirectUrl = AuthSession.makeRedirectUri({ path: 'sso-callback' });
-      const { createdSessionId, setActive: sa } = await startSSOFlow({ strategy, redirectUrl });
-      if (createdSessionId && sa) await sa({ session: createdSessionId });
+      const redirectUrl = Linking.createURL('/');
+      const result: any = await startSSOFlow({ strategy, redirectUrl });
+
+      const activate = result?.setActive ?? setActive;
+
+      if (result?.createdSessionId) {
+        await activate({ session: result.createdSessionId });
+        return;
+      }
+      if (result?.signIn?.status === 'complete') {
+        await activate({ session: result.signIn.createdSessionId });
+        return;
+      }
+      if (result?.signUp?.status === 'complete') {
+        await activate({ session: result.signUp.createdSessionId });
+        return;
+      }
+      if (result?.signUp?.status === 'missing_requirements') {
+        const missing: string[] = result.signUp.missingFields ?? [];
+        const emailFromGoogle: string =
+          result.signUp.emailAddress ?? '';
+        const patch: Record<string, string> = {};
+
+        if (missing.includes('username')) {
+          const base = emailFromGoogle
+            .split('@')[0]
+            .replace(/[^a-zA-Z0-9]/g, '')
+            .toLowerCase()
+            .slice(0, 15);
+          patch.username = `${base || 'user'}${Math.random().toString(36).slice(2, 6)}`;
+        }
+        if (missing.includes('first_name')) {
+          patch.firstName = result.signUp.firstName || 'User';
+        }
+        if (missing.includes('last_name')) {
+          patch.lastName = result.signUp.lastName || 'Account';
+        }
+
+        try {
+          const updated = await result.signUp.update(patch);
+          if (updated.status === 'complete' && updated.createdSessionId) {
+            await activate({ session: updated.createdSessionId });
+            return;
+          }
+        } catch {}
+
+        Alert.alert(
+          'Sign-up incomplete',
+          `Could not finish Google sign-up (missing: ${missing.join(', ')}). Try email sign-up instead.`,
+        );
+        return;
+      }
+
+      Alert.alert(
+        'Sign-in incomplete',
+        `Could not complete Google sign-in (status: ${result?.signIn?.status ?? result?.signUp?.status ?? 'unknown'}).`,
+      );
     } catch (err: any) {
-      Alert.alert('Login failed', err?.errors?.[0]?.longMessage ?? err?.message ?? 'Social login failed.');
+      Alert.alert(
+        'Login failed',
+        err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ?? err?.message ?? 'Social login failed.',
+      );
     } finally {
       setSsoLoading(null);
     }
@@ -245,21 +301,6 @@ export default function SignUp() {
             <View style={styles.dividerLine} />
             <Text style={styles.dividerText}>OR</Text>
             <View style={styles.dividerLine} />
-          </View>
-
-          {/* Email / Phone toggle */}
-          <View style={styles.tabToggle}>
-            {(['email', 'phone'] as const).map((t) => (
-              <TouchableOpacity
-                key={t}
-                style={[styles.tabBtn, tab === t && styles.tabBtnActive]}
-                onPress={() => setTab(t)}
-              >
-                <Text style={[styles.tabBtnText, tab === t && styles.tabBtnTextActive]}>
-                  {t === 'email' ? 'Email' : 'Phone'}
-                </Text>
-              </TouchableOpacity>
-            ))}
           </View>
 
           {/* Full Name */}

@@ -1,11 +1,14 @@
-import { useCallback } from 'react';
-import { View, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { useCallback, useState } from 'react';
+import { View, ScrollView, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUser, useAuth } from '@clerk/clerk-expo';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { format } from 'date-fns';
+import * as Haptics from 'expo-haptics';
+import { syncSmsToMongo } from '@/services/smsSyncAndroid';
+import { showToast } from '@/services/toast';
 
 const BG = '#f5f4f0';
 
@@ -13,6 +16,7 @@ type SettingItem = {
   icon: string;
   label: string;
   badge?: string;
+  comingSoon?: boolean;
   onPress: () => void;
 };
 
@@ -83,33 +87,70 @@ export default function SettingsScreen() {
     ]);
   };
 
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSyncSms = async () => {
+    if (Platform.OS !== 'android') {
+      showToast('SMS sync is only available on Android', 'info');
+      return;
+    }
+    if (syncing) return;
+    setSyncing(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      const { imported, found } = await syncSmsToMongo();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (imported > 0) {
+        showToast(`Imported ${imported} new transaction${imported === 1 ? '' : 's'}`, 'success');
+      } else if (found > 0) {
+        showToast('All UPI messages already imported', 'info');
+      } else {
+        showToast('No UPI messages found in inbox', 'info');
+      }
+    } catch (err: any) {
+      showToast(err?.message ?? 'SMS sync failed', 'error');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const settingItems: SettingItem[] = [
     {
       icon: 'message-text-outline',
-      label: 'Banks & SMS',
-      badge: 'connected',
-      onPress: () => Alert.alert('Banks & SMS', 'Manage your connected bank SMS sources.'),
+      label: syncing ? 'Syncing SMS…' : 'Sync SMS now',
+      badge: Platform.OS === 'android' ? undefined : 'iOS unsupported',
+      onPress: handleSyncSms,
     },
     {
       icon: 'bell-outline',
-      label: 'Notifications',
-      onPress: () => Alert.alert('Notifications', 'Manage budget alerts and reminders.'),
+      label: 'Budget alerts',
+      badge: 'Coming soon',
+      comingSoon: true,
+      onPress: () => showToast('Budget alerts are coming soon', 'info'),
     },
     {
       icon: 'filter-outline',
-      label: 'Category rules',
-      onPress: () => Alert.alert('Category rules', 'Auto-categorisation rules for your transactions.'),
+      label: 'Auto-categorize rules',
+      badge: 'Coming soon',
+      comingSoon: true,
+      onPress: () => showToast('Custom rules are coming soon', 'info'),
     },
     {
       icon: 'file-export-outline',
-      label: 'Export & sync',
-      onPress: () => Alert.alert('Export & sync', 'Export transactions as CSV or sync to cloud.'),
+      label: 'Export to CSV',
+      badge: 'Coming soon',
+      comingSoon: true,
+      onPress: () => showToast('CSV export is coming soon', 'info'),
     },
     {
       icon: 'shield-outline',
       label: 'Privacy & permissions',
       badge: 'On-device',
-      onPress: () => Alert.alert('Privacy', 'All your data is stored on-device and never shared.'),
+      onPress: () =>
+        Alert.alert(
+          'Privacy & permissions',
+          'SMS data is read on-device, parsed locally, and only the extracted transaction details are sent to your private server. Raw SMS messages never leave your phone.',
+        ),
     },
   ];
 
@@ -172,12 +213,21 @@ export default function SettingsScreen() {
               onPress={item.onPress}
               activeOpacity={0.7}
             >
-              <MaterialCommunityIcons name={item.icon as any} size={20} color="#6b7280" style={styles.settingIcon} />
-              <Text style={styles.settingLabel}>{item.label}</Text>
+              <MaterialCommunityIcons
+                name={item.icon as any}
+                size={20}
+                color={item.comingSoon ? '#c4c4c4' : '#6b7280'}
+                style={styles.settingIcon}
+              />
+              <Text style={[styles.settingLabel, item.comingSoon && styles.settingLabelMuted]}>
+                {item.label}
+              </Text>
               <View style={styles.settingRight}>
                 {item.badge ? (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{item.badge}</Text>
+                  <View style={[styles.badge, item.comingSoon && styles.badgeSoft]}>
+                    <Text style={[styles.badgeText, item.comingSoon && styles.badgeTextSoft]}>
+                      {item.badge}
+                    </Text>
                   </View>
                 ) : null}
                 <MaterialCommunityIcons name="chevron-right" size={18} color="#d1d5db" />
@@ -252,12 +302,15 @@ const styles = StyleSheet.create({
   settingRowBorder: { borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   settingIcon: { marginRight: 14 },
   settingLabel: { flex: 1, fontSize: 15, fontWeight: '500', color: '#111827' },
+  settingLabelMuted: { color: '#9ca3af' },
   settingRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   badge: {
     backgroundColor: '#f3f4f6', borderRadius: 20,
     paddingHorizontal: 10, paddingVertical: 3,
   },
+  badgeSoft: { backgroundColor: '#fef3c7' },
   badgeText: { fontSize: 12, color: '#6b7280', fontWeight: '500' },
+  badgeTextSoft: { color: '#a16207' },
 
   // Sign out
   signOutBtn: {

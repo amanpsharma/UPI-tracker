@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   View, ScrollView, StyleSheet, TouchableOpacity,
-  TextInput, KeyboardAvoidingView, Platform, Alert,
+  TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { Text, Snackbar } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,33 +9,15 @@ import { router } from 'expo-router';
 import { format, isToday, isYesterday } from 'date-fns';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { api } from '@/services/api';
-import { CATEGORY_COLORS, CATEGORIES } from '@/constants';
+import { CATEGORIES } from '@/constants';
+import { CAT_DISPLAY } from '@/constants/ui';
+import CatIcon from '@/components/CatIcon';
 import { Category } from '@/types';
 
 const BG = '#f5f4f0';
 const BANKS = ['HDFC', 'ICICI', 'SBI', 'Axis', 'Kotak'];
-const CAT_DISPLAY: Record<string, string> = {
-  Food: 'Food & Dining', Transport: 'Transport', Shopping: 'Shopping',
-  Bills: 'Bills & Utilities', Entertainment: 'Entertainment', Health: 'Health', Other: 'Other',
-};
-const CAT_SHAPE: Record<string, 'circle' | 'square' | 'diamond'> = {
-  Food: 'circle', Transport: 'square', Shopping: 'diamond',
-  Bills: 'circle', Entertainment: 'diamond', Health: 'circle', Other: 'square',
-};
-
-function CatIcon({ cat }: { cat: string }) {
-  const color = CATEGORY_COLORS[cat as Category] ?? '#9ca3af';
-  const shape = CAT_SHAPE[cat] ?? 'circle';
-  if (shape === 'diamond') {
-    return (
-      <View style={{ width: 18, height: 18, alignItems: 'center', justifyContent: 'center' }}>
-        <View style={{ width: 12, height: 12, borderRadius: 2, backgroundColor: color, transform: [{ rotate: '45deg' }] }} />
-      </View>
-    );
-  }
-  return <View style={{ width: 14, height: 14, borderRadius: shape === 'circle' ? 7 : 3, backgroundColor: color }} />;
-}
 
 export default function AddTransaction() {
   const [txType, setTxType] = useState<'sent' | 'received'>('sent');
@@ -46,6 +28,8 @@ export default function AddTransaction() {
   const [date, setDate] = useState(new Date());
   const [bank, setBank] = useState('HDFC');
   const [showCatPicker, setShowCatPicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [snack, setSnack] = useState('');
 
@@ -81,19 +65,23 @@ export default function AddTransaction() {
   };
 
 
-  const pickDate = () => {
-    Alert.alert('Select Date', undefined, [
-      { text: 'Today', onPress: () => setDate(new Date()) },
-      {
-        text: 'Yesterday',
-        onPress: () => {
-          const d = new Date();
-          d.setDate(d.getDate() - 1);
-          setDate(d);
-        },
-      },
-      { text: 'Cancel', style: 'cancel' as const },
-    ]);
+  const onDateChange = (_event: DateTimePickerEvent, picked?: Date) => {
+    setShowDatePicker(false);
+    if (picked) {
+      // Preserve the existing time-of-day component when changing the date
+      const next = new Date(picked);
+      next.setHours(date.getHours(), date.getMinutes(), 0, 0);
+      setDate(next);
+    }
+  };
+
+  const onTimeChange = (_event: DateTimePickerEvent, picked?: Date) => {
+    setShowTimePicker(false);
+    if (picked) {
+      const next = new Date(date);
+      next.setHours(picked.getHours(), picked.getMinutes(), 0, 0);
+      setDate(next);
+    }
   };
 
   return (
@@ -198,17 +186,45 @@ export default function AddTransaction() {
           <View style={styles.rowFields}>
             <View style={styles.rowField}>
               <Text style={styles.fieldLabel}>DATE</Text>
-              <TouchableOpacity style={styles.selectRow} onPress={pickDate} activeOpacity={0.7}>
+              <TouchableOpacity
+                style={styles.selectRow}
+                onPress={() => setShowDatePicker(true)}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons name="calendar-outline" size={16} color="#6b7280" />
                 <Text style={styles.selectText}>{dateLabel}</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.rowField}>
               <Text style={styles.fieldLabel}>TIME</Text>
-              <View style={styles.selectRow}>
+              <TouchableOpacity
+                style={styles.selectRow}
+                onPress={() => setShowTimePicker(true)}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons name="clock-outline" size={16} color="#6b7280" />
                 <Text style={styles.selectText}>{timeLabel}</Text>
-              </View>
+              </TouchableOpacity>
             </View>
           </View>
+
+          {showDatePicker && (
+            <DateTimePicker
+              value={date}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'inline' : 'default'}
+              maximumDate={new Date()}
+              onChange={onDateChange}
+            />
+          )}
+          {showTimePicker && (
+            <DateTimePicker
+              value={date}
+              mode="time"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={onTimeChange}
+            />
+          )}
 
           {/* UPI ID */}
           <View style={styles.field}>
