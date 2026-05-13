@@ -16,7 +16,9 @@ const CATEGORIES = [
 const transactionBase = {
   amount: z.number().finite().positive().max(10_000_000), // 1 crore cap — sanity bound
   recipient: z.string().trim().min(1).max(200),
-  upiId: z.string().trim().max(200).optional().default(""),  bank: z.string().trim().max(50).optional().default(''),  note: z.string().trim().max(2000).optional().default(""),
+  upiId: z.string().trim().max(200).optional().default(""),
+  bank: z.string().trim().max(50).optional().default(""),
+  note: z.string().trim().max(2000).optional().default(""),
   category: z.enum(CATEGORIES).optional().default("Other"),
   source: z.enum(["sms", "manual"]).optional().default("manual"),
   type: z.enum(["sent", "received"]).optional().default("sent"),
