@@ -131,16 +131,12 @@ export default function SettingsScreen() {
     {
       icon: 'filter-outline',
       label: 'Auto-categorize rules',
-      badge: 'Coming soon',
-      comingSoon: true,
-      onPress: () => showToast('Custom rules are coming soon', 'info'),
+      onPress: () => router.push('/category-rules'),
     },
     {
       icon: 'file-export-outline',
-      label: 'Export to CSV',
-      badge: 'Coming soon',
-      comingSoon: true,
-      onPress: () => showToast('CSV export is coming soon', 'info'),
+      label: 'Export & sync',
+      onPress: () => router.push('/export'),
     },
     {
       icon: 'shield-outline',

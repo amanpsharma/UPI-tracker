@@ -9,7 +9,8 @@ import {
   AppStateStatus,
   Platform,
   TouchableOpacity,
-  Alert,
+  Animated,
+  Easing,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -23,6 +24,7 @@ import { avatarStyle } from "@/constants/ui";
 import { fmtShort } from "@/utils/format";
 import { Stats, Transaction } from "@/types";
 import { syncSmsToMongo } from "@/services/smsSyncAndroid";
+import { showToast } from "@/services/toast";
 import Skeleton, { SkeletonTxRow } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
 
@@ -43,6 +45,36 @@ export default function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const appState = useRef<AppStateStatus>("active");
+  const scrollRef = useRef<ScrollView>(null);
+  const spinValue = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (syncing) {
+      spinValue.setValue(0);
+      Animated.loop(
+        Animated.timing(spinValue, {
+          toValue: 1,
+          duration: 900,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      ).start();
+    } else {
+      spinValue.stopAnimation();
+      spinValue.setValue(0);
+    }
+  }, [syncing]);
+
+  const spinStyle = {
+    transform: [
+      {
+        rotate: spinValue.interpolate({
+          inputRange: [0, 1],
+          outputRange: ["0deg", "360deg"],
+        }),
+      },
+    ],
+  };
 
   useEffect(() => {
     if (Platform.OS !== "android") return;
@@ -99,28 +131,27 @@ export default function Dashboard() {
 
   const handleScanSms = async () => {
     if (Platform.OS !== "android") return;
+    // Scroll to top and activate the RefreshControl spinner
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+    setRefreshing(true);
     setSyncing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
-      const { scanned, found, imported } = await syncSmsToMongo();
+      const { imported } = await syncSmsToMongo();
       if (imported > 0) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert(
-          "Sync Complete",
-          `Scanned ${scanned} SMS.\nFound ${found} UPI payments.\nImported ${imported} new.`,
+        showToast(
+          `Imported ${imported} new transaction${imported !== 1 ? "s" : ""}`,
+          "success",
         );
       } else {
-        Alert.alert(
-          "No new payments",
-          `Scanned ${scanned} SMS.\nFound ${found} UPI payments.\nNo new details imported.`,
-        );
+        showToast("All transactions are up to date", "info");
       }
       await load();
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
     } catch (err: any) {
-      Alert.alert(
-        "Sync failed",
-        err?.message ?? "Could not sync SMS transactions.",
-      );
+      showToast(err?.message ?? "SMS sync failed", "error");
+      setRefreshing(false);
     } finally {
       setSyncing(false);
     }
@@ -224,6 +255,7 @@ export default function Dashboard() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
+        ref={scrollRef}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -266,11 +298,13 @@ export default function Dashboard() {
               disabled={syncing}
               activeOpacity={0.7}
             >
-              <MaterialCommunityIcons
-                name={syncing ? "loading" : "refresh"}
-                size={13}
-                color="#555"
-              />
+              <Animated.View style={syncing ? spinStyle : undefined}>
+                <MaterialCommunityIcons
+                  name="refresh"
+                  size={13}
+                  color="#555"
+                />
+              </Animated.View>
               <Text style={styles.scanBtnText}>Scan SMS</Text>
             </TouchableOpacity>
           )}

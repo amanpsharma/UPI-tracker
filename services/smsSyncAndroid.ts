@@ -2,6 +2,7 @@ import { PermissionsAndroid, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { parseUpiSms, parsedToTransaction } from './smsParser';
 import { api } from './api';
+import { getRules, matchCustomRule } from './categoryRules';
 import { Transaction } from '@/types';
 
 // Persist the last successful sync timestamp so subsequent scans only read NEW
@@ -133,6 +134,15 @@ export async function syncSmsToMongo(
   }
 
   const candidates = parsed.map((p) => parsedToTransaction(p!));
+
+  // Apply user-defined category rules (take priority over built-in merchant map)
+  const customRules = await getRules();
+  if (customRules.length > 0) {
+    for (const tx of candidates) {
+      const override = matchCustomRule(tx.recipient, tx.upiId, customRules);
+      if (override) tx.category = override;
+    }
+  }
 
   const existingTxs = await api.getTransactions({ source: 'sms', limit: 10000 });
   const existingSet = buildExistingSet(existingTxs);

@@ -221,6 +221,14 @@ export default function RootLayout() {
                 name="transactions-month"
                 options={{ headerShown: false }}
               />
+              <Stack.Screen
+                name="category-rules"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="export"
+                options={{ headerShown: false }}
+              />
             </Stack>
             </ErrorBoundary>
             <ServerWakingBanner />
