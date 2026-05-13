@@ -17,19 +17,14 @@ import { api } from "@/services/api";
 import { CATEGORIES, CATEGORY_COLORS } from "@/constants";
 import { avatarStyle } from "@/constants/ui";
 import { fmtShort } from "@/utils/format";
+import { showToast } from "@/services/toast";
 import { Category, Transaction, TransactionType } from "@/types";
+import { groupTransactionsByDate, DayGroup } from "@/utils/groupByDate";
 import SwipeableRow from "@/components/SwipeableRow";
 import Skeleton, { SkeletonTxRow } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
 
 const PAGE_SIZE = 50;
-
-type DayGroup = {
-  date: string;
-  label: string;
-  sentTotal: number;
-  transactions: Transaction[];
-};
 
 export default function ActivityScreen() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -48,7 +43,7 @@ export default function ActivityScreen() {
   const loadingMoreRef = useRef(false);
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 400);
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(t);
   }, [search]);
 
@@ -116,8 +111,8 @@ export default function ActivityScreen() {
       setTransactions((prev) => [...prev, ...data]);
       skipRef.current += data.length;
       setHasMore(data.length === PAGE_SIZE);
-    } catch {
-      // silent — user can pull-to-refresh
+    } catch (err: any) {
+      showToast(err?.message ?? "Failed to load more transactions.", "error");
     } finally {
       setLoadingMore(false);
       loadingMoreRef.current = false;
@@ -135,31 +130,10 @@ export default function ActivityScreen() {
     skipRef.current = Math.max(0, skipRef.current - 1);
   };
 
-  // Group transactions by calendar date
-  const groups = useMemo<DayGroup[]>(() => {
-    const today = format(new Date(), "yyyy-MM-dd");
-    const yesterday = format(subDays(new Date(), 1), "yyyy-MM-dd");
-    const map: Record<string, DayGroup> = {};
-    const order: string[] = [];
-
-    for (const tx of transactions) {
-      const date = format(new Date(tx.paidAt), "yyyy-MM-dd");
-      if (!map[date]) {
-        const label =
-          date === today
-            ? "TODAY"
-            : date === yesterday
-              ? "YESTERDAY"
-              : format(new Date(tx.paidAt), "MMM d, yyyy");
-        map[date] = { date, label, sentTotal: 0, transactions: [] };
-        order.push(date);
-      }
-      map[date].transactions.push(tx);
-      if ((tx.type ?? "sent") === "sent") map[date].sentTotal += tx.amount;
-    }
-
-    return order.map((d) => map[d]);
-  }, [transactions]);
+  const groups = useMemo<DayGroup[]>(
+    () => groupTransactionsByDate(transactions),
+    [transactions],
+  );
 
   const renderGroup = ({ item: group }: { item: DayGroup }) => (
     <View style={styles.daySection}>

@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   View,
   SectionList,
@@ -10,85 +10,133 @@ import {
 import { Text } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, router } from "expo-router";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { format, subDays } from "date-fns";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
 import { api } from "@/services/api";
-import { CATEGORY_COLORS, CATEGORY_ICONS } from "@/constants";
+import { CATEGORY_COLORS } from "@/constants";
 import { avatarStyle } from "@/constants/ui";
+import { showToast } from "@/services/toast";
 import { Transaction } from "@/types";
 
+// Uses subDays to correctly handle DST boundaries instead of fixed ms arithmetic
 function getDayLabel(dateStr: string): string {
   const today = format(new Date(), "yyyy-MM-dd");
-  const yesterday = format(new Date(Date.now() - 86400000), "yyyy-MM-dd");
+  const yesterday = format(subDays(new Date(), 1), "yyyy-MM-dd");
   if (dateStr === today) return "Today";
   if (dateStr === yesterday) return "Yesterday";
   const [y, m, d] = dateStr.split("-").map(Number);
   return format(new Date(y, m - 1, d), "EEE, d MMM yyyy");
 }
 
-type Section = { title: string; total: number; data: Transaction[] };
+type Section = {
+  title: string;
+  total: number;
+  receivedTotal: number;
+  data: Transaction[];
+};
 
 export default function TransactionsMonthScreen() {
   const { month } = useLocalSearchParams<{ month: string }>();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
 
-  // Parse month param (YYYY-MM)
-  const [y, m] = (month ?? format(new Date(), "yyyy-MM"))
-    .split("-")
-    .map(Number);
-  const monthStart = new Date(y, m - 1, 1);
-  const monthEnd = new Date(y, m, 0, 23, 59, 59);
-  const monthTitle = format(monthStart, "MMMM yyyy");
+  const monthStr = month ?? format(new Date(), "yyyy-MM");
+  const isValidMonth = /^\d{4}-\d{2}$/.test(monthStr);
+
+  const { monthStart, monthTitle } = useMemo(() => {
+    if (!isValidMonth) {
+      const now = new Date();
+      return { monthStart: now, monthTitle: format(now, "MMMM yyyy") };
+    }
+    const [y, m] = monthStr.split("-").map(Number);
+    const start = new Date(y, m - 1, 1);
+    return { monthStart: start, monthTitle: format(start, "MMMM yyyy") };
+  }, [monthStr, isValidMonth]);
 
   const load = useCallback(async () => {
+    setError("");
     try {
-      const data = await api.getTransactions({
-        from: startOfMonth(monthStart).toISOString(),
-        to: endOfMonth(monthStart).toISOString(),
-        limit: 500,
-      });
+      const from = new Date(
+        monthStart.getFullYear(),
+        monthStart.getMonth(),
+        1,
+      ).toISOString();
+      const to = new Date(
+        monthStart.getFullYear(),
+        monthStart.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+      ).toISOString();
+      const data = await api.getTransactions({ from, to, limit: 500 });
       setTransactions(data);
-    } catch {
-      // silent
+    } catch (err: any) {
+      const msg = err?.message ?? "Failed to load transactions.";
+      setError(msg);
+      showToast(msg, "error");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [month]);
+  }, [monthStart]);
 
   useFocusEffect(
     useCallback(() => {
       load();
     }, [load]),
   );
+
   const onRefresh = () => {
     setRefreshing(true);
     load();
   };
 
-  // Group by date
-  const sections: Section[] = [];
-  const dateMap: Record<string, Transaction[]> = {};
-  transactions.forEach((tx) => {
-    const key = format(new Date(tx.paidAt), "yyyy-MM-dd");
-    if (!dateMap[key]) dateMap[key] = [];
-    dateMap[key].push(tx);
-  });
-  Object.entries(dateMap)
-    .sort(([a], [b]) => b.localeCompare(a))
-    .forEach(([date, txs]) => {
-      const dayTotal = txs
-        .filter((tx) => (tx.type ?? "sent") === "sent")
-        .reduce((s, tx) => s + tx.amount, 0);
-      sections.push({ title: getDayLabel(date), total: dayTotal, data: txs });
-    });
+  const { sections, totalSent } = useMemo(() => {
+    const dateMap: Record<string, Transaction[]> = {};
+    for (const tx of transactions) {
+      const key = format(new Date(tx.paidAt), "yyyy-MM-dd");
+      if (!dateMap[key]) dateMap[key] = [];
+      dateMap[key].push(tx);
+    }
 
-  const totalSpent = transactions
-    .filter((tx) => (tx.type ?? "sent") === "sent")
-    .reduce((s, tx) => s + tx.amount, 0);
+    const secs: Section[] = [];
+    let sentSum = 0;
+    let receivedSum = 0;
+
+    Object.entries(dateMap)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .forEach(([date, txs]) => {
+        let dayTotal = 0;
+        let dayReceived = 0;
+        for (const tx of txs) {
+          if ((tx.type ?? "sent") === "sent") {
+            dayTotal += tx.amount;
+            sentSum += tx.amount;
+          } else {
+            dayReceived += tx.amount;
+            receivedSum += tx.amount;
+          }
+        }
+        secs.push({
+          title: getDayLabel(date),
+          total: dayTotal,
+          receivedTotal: dayReceived,
+          data: txs,
+        });
+      });
+
+    return { sections: secs, totalSent: sentSum };
+  }, [transactions]);
+
+  const sentCount = useMemo(
+    () => transactions.filter((tx) => (tx.type ?? "sent") === "sent").length,
+    [transactions],
+  );
+  const receivedCount = transactions.length - sentCount;
 
   const renderItem = ({ item }: { item: Transaction }) => {
     const av = avatarStyle(item.recipient || "U");
@@ -117,7 +165,10 @@ export default function TransactionsMonthScreen() {
             <View
               style={[
                 styles.catDot,
-                { backgroundColor: CATEGORY_COLORS[item.category] },
+                {
+                  backgroundColor:
+                    CATEGORY_COLORS[item.category] ?? "#A0A0A0",
+                },
               ]}
             />
             <Text style={styles.txMetaText}>
@@ -137,38 +188,64 @@ export default function TransactionsMonthScreen() {
   const renderSectionHeader = ({ section }: { section: Section }) => (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionDate}>{section.title}</Text>
-      {section.total > 0 && (
-        <Text style={styles.sectionTotal}>
-          -₹{section.total.toLocaleString("en-IN")}
-        </Text>
-      )}
+      <View style={styles.sectionTotals}>
+        {section.receivedTotal > 0 && (
+          <Text style={[styles.sectionTotal, { color: "#16a34a" }]}>
+            +₹{section.receivedTotal.toLocaleString("en-IN")}
+          </Text>
+        )}
+        {section.total > 0 && (
+          <Text style={styles.sectionTotal}>
+            -₹{section.total.toLocaleString("en-IN")}
+          </Text>
+        )}
+      </View>
     </View>
   );
+
+  const headerSub = useMemo(() => {
+    if (loading) return "";
+    const parts: string[] = [];
+    if (sentCount > 0) parts.push(`${sentCount} sent`);
+    if (receivedCount > 0) parts.push(`${receivedCount} received`);
+    if (parts.length === 0) return "No transactions";
+    if (totalSent > 0) parts.push(`-₹${totalSent.toLocaleString("en-IN")}`);
+    return parts.join(" · ");
+  }, [loading, sentCount, receivedCount, totalSent]);
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() =>
+            router.canGoBack()
+              ? router.back()
+              : router.replace("/(tabs)/history")
+          }
+        >
           <MaterialCommunityIcons name="arrow-left" size={22} color="#111827" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{monthTitle}</Text>
-          {!loading && (
-            <Text style={styles.headerSub}>
-              {transactions.length} transaction
-              {transactions.length !== 1 ? "s" : ""}
-              {totalSpent > 0
-                ? ` · -₹${totalSpent.toLocaleString("en-IN")}`
-                : ""}
-            </Text>
-          )}
+          {headerSub ? (
+            <Text style={styles.headerSub}>{headerSub}</Text>
+          ) : null}
         </View>
       </View>
 
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#1a1a1a" />
+        </View>
+      ) : error ? (
+        <View style={styles.center}>
+          <MaterialCommunityIcons name="wifi-off" size={40} color="#e5e7eb" />
+          <Text style={styles.emptyText}>{error}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={load}>
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
         </View>
       ) : transactions.length === 0 ? (
         <View style={styles.center}>
@@ -256,6 +333,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   sectionDate: { fontSize: 12, fontWeight: "700", color: "#6b7280" },
+  sectionTotals: { flexDirection: "row", gap: 6 },
   sectionTotal: { fontSize: 12, color: "#9ca3af", fontWeight: "500" },
 
   // Transaction row
@@ -308,5 +386,19 @@ const styles = StyleSheet.create({
     color: "#9ca3af",
     fontWeight: "500",
     fontFamily: "GeistMono_600SemiBold",
+    textAlign: "center",
+  },
+
+  retryBtn: {
+    marginTop: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    backgroundColor: "#111827",
+    borderRadius: 20,
+  },
+  retryText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });

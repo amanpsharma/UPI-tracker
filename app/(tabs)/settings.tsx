@@ -9,6 +9,8 @@ import { format } from 'date-fns';
 import * as Haptics from 'expo-haptics';
 import { syncSmsToMongo } from '@/services/smsSyncAndroid';
 import { showToast } from '@/services/toast';
+import { avatarStyle } from '@/constants/ui';
+import { checkBudgetAlerts, requestNotificationPermission } from '@/services/budgetAlert';
 
 const BG = '#f5f4f0';
 
@@ -19,18 +21,6 @@ type SettingItem = {
   comingSoon?: boolean;
   onPress: () => void;
 };
-
-function getAvatarColor(name: string) {
-  const colors = [
-    { bg: '#bbf7d0', text: '#16a34a' },
-    { bg: '#bfdbfe', text: '#2563eb' },
-    { bg: '#ddd6fe', text: '#7c3aed' },
-    { bg: '#fecaca', text: '#dc2626' },
-    { bg: '#fed7aa', text: '#ea580c' },
-    { bg: '#fbcfe8', text: '#db2777' },
-  ];
-  return colors[(name || 'A').charCodeAt(0) % colors.length];
-}
 
 export default function SettingsScreen() {
   const { user, isLoaded } = useUser();
@@ -60,7 +50,7 @@ export default function SettingsScreen() {
     .slice(0, 2)
     .map((w) => w[0]?.toUpperCase() ?? '')
     .join('');
-  const av = getAvatarColor(displayName || 'U');
+  const av = avatarStyle(displayName || 'U');
 
   const memberSince = user?.createdAt
     ? format(new Date(user.createdAt), 'MMM yyyy')
@@ -107,11 +97,23 @@ export default function SettingsScreen() {
       } else {
         showToast('No UPI messages found in inbox', 'info');
       }
+      // Re-check budget thresholds after new transactions come in
+      checkBudgetAlerts().catch(() => {});
     } catch (err: any) {
       showToast(err?.message ?? 'SMS sync failed', 'error');
     } finally {
       setSyncing(false);
     }
+  };
+
+  const handleBudgetAlerts = async () => {
+    const granted = await requestNotificationPermission();
+    if (!granted) {
+      showToast('Enable notifications in device settings to receive budget alerts', 'info');
+      return;
+    }
+    await checkBudgetAlerts();
+    showToast('Budget alerts checked', 'success');
   };
 
   const settingItems: SettingItem[] = [
@@ -124,9 +126,7 @@ export default function SettingsScreen() {
     {
       icon: 'bell-outline',
       label: 'Budget alerts',
-      badge: 'Coming soon',
-      comingSoon: true,
-      onPress: () => showToast('Budget alerts are coming soon', 'info'),
+      onPress: handleBudgetAlerts,
     },
     {
       icon: 'filter-outline',

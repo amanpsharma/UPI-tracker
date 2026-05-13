@@ -5,6 +5,7 @@ import {
   StyleSheet,
   RefreshControl,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { Text } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -77,11 +78,21 @@ export default function HistoryScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
-          <MaterialCommunityIcons
-            name="calendar-month-outline"
-            size={40}
-            color="#e5e7eb"
-          />
+          <ActivityIndicator size="large" color="#1a1a1a" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.center}>
+          <MaterialCommunityIcons name="wifi-off" size={40} color="#e5e7eb" />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={load}>
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -255,12 +266,6 @@ export default function HistoryScreen() {
             );
           })}
 
-        {error ? (
-          <View style={styles.center}>
-            <MaterialCommunityIcons name="wifi-off" size={32} color="#e5e7eb" />
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -411,5 +416,13 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
 
-  errorText: { color: "#9ca3af", fontSize: 13 },
+  errorText: { color: "#9ca3af", fontSize: 13, textAlign: "center" },
+  retryBtn: {
+    marginTop: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    backgroundColor: "#111827",
+    borderRadius: 20,
+  },
+  retryText: { color: "#fff", fontSize: 14, fontWeight: "600" },
 });

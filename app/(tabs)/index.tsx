@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { groupTransactionsByDate } from "@/utils/groupByDate";
 import {
   View,
   ScrollView,
@@ -153,34 +154,10 @@ export default function Dashboard() {
   }));
   const chartMax = Math.max(...chartBars.map((b) => b.value), 1);
 
-  // Group recent transactions by date (same pattern as Activity screen)
-  const recentGroups = useMemo(() => {
-    const today = format(new Date(), "yyyy-MM-dd");
-    const yesterday = format(subDays(new Date(), 1), "yyyy-MM-dd");
-    const map: Record<
-      string,
-      { label: string; sentTotal: number; items: Transaction[] }
-    > = {};
-    const order: string[] = [];
-
-    for (const tx of recent) {
-      const date = format(new Date(tx.paidAt), "yyyy-MM-dd");
-      if (!map[date]) {
-        const label =
-          date === today
-            ? "TODAY"
-            : date === yesterday
-              ? "YESTERDAY"
-              : format(new Date(tx.paidAt), "MMM d, yyyy");
-        map[date] = { label, sentTotal: 0, items: [] };
-        order.push(date);
-      }
-      map[date].items.push(tx);
-      if ((tx.type ?? "sent") === "sent") map[date].sentTotal += tx.amount;
-    }
-
-    return order.map((d) => ({ date: d, ...map[d] }));
-  }, [recent]);
+  const recentGroups = useMemo(
+    () => groupTransactionsByDate(recent),
+    [recent],
+  );
 
   if (loading) {
     return (
@@ -405,11 +382,11 @@ export default function Dashboard() {
                   )}
                 </View>
                 <View style={styles.dayCard}>
-                  {group.items.map((tx, i) => {
+                  {group.transactions.map((tx, i) => {
                     const av = avatarStyle(tx.recipient || "U");
                     const isSent = (tx.type ?? "sent") === "sent";
                     const isFirst = i === 0;
-                    const isLast = i === group.items.length - 1;
+                    const isLast = i === group.transactions.length - 1;
                     return (
                       <TouchableOpacity
                         key={tx._id}

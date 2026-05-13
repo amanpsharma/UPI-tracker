@@ -110,8 +110,25 @@ client.interceptors.response.use(
   }
 );
 
+// Retries transient network failures (no response) up to `retries` times with
+// linear back-off. API-level errors (ApiError with an HTTP status) are thrown
+// immediately — retrying a 4xx/5xx is unlikely to help.
+async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (err instanceof ApiError) throw err;
+      if (attempt < retries) await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+    }
+  }
+  throw lastErr;
+}
+
 export const api = {
-  getTransactions: async (params?: {
+  getTransactions: (params?: {
     category?: Category;
     source?: string;
     type?: TransactionType;
@@ -120,27 +137,31 @@ export const api = {
     limit?: number;
     skip?: number;
     search?: string;
-  }) => {
-    const { data } = await trackSlowRequest(client.get<Transaction[]>('/transactions', { params }));
-    return data;
-  },
+  }) =>
+    withRetry(async () => {
+      const { data } = await trackSlowRequest(client.get<Transaction[]>('/transactions', { params }));
+      return data;
+    }),
 
-  getTransaction: async (id: string): Promise<Transaction> => {
-    const { data } = await trackSlowRequest(client.get<Transaction>(`/transactions/${id}`));
-    return data;
-  },
+  getTransaction: (id: string): Promise<Transaction> =>
+    withRetry(async () => {
+      const { data } = await trackSlowRequest(client.get<Transaction>(`/transactions/${id}`));
+      return data;
+    }),
 
-  getStats: async (month?: string): Promise<Stats> => {
-    const { data } = await trackSlowRequest(
-      client.get<Stats>('/transactions/stats', { params: month ? { month } : undefined }),
-    );
-    return data;
-  },
+  getStats: (month?: string): Promise<Stats> =>
+    withRetry(async () => {
+      const { data } = await trackSlowRequest(
+        client.get<Stats>('/transactions/stats', { params: month ? { month } : undefined }),
+      );
+      return data;
+    }),
 
-  getTrend: async (days = 30): Promise<{ date: string; total: number; count: number }[]> => {
-    const { data } = await trackSlowRequest(client.get('/transactions/trend', { params: { days } }));
-    return data;
-  },
+  getTrend: (days = 30): Promise<{ date: string; total: number; count: number }[]> =>
+    withRetry(async () => {
+      const { data } = await trackSlowRequest(client.get('/transactions/trend', { params: { days } }));
+      return data;
+    }),
 
   addTransaction: async (tx: Omit<Transaction, '_id' | 'createdAt'>): Promise<Transaction> => {
     const { data } = await trackSlowRequest(client.post<Transaction>('/transactions', tx));
@@ -166,13 +187,15 @@ export const api = {
     await trackSlowRequest(client.delete(`/transactions/${id}`));
   },
 
-  getTransactionCount: async (): Promise<number> => {
-    const { data } = await trackSlowRequest(client.get<{ count: number }>('/transactions/count'));
-    return data.count;
-  },
+  getTransactionCount: (): Promise<number> =>
+    withRetry(async () => {
+      const { data } = await trackSlowRequest(client.get<{ count: number }>('/transactions/count'));
+      return data.count;
+    }),
 
-  getMonthly: async (): Promise<MonthlyData[]> => {
-    const { data } = await trackSlowRequest(client.get<MonthlyData[]>('/transactions/monthly'));
-    return data;
-  },
+  getMonthly: (): Promise<MonthlyData[]> =>
+    withRetry(async () => {
+      const { data } = await trackSlowRequest(client.get<MonthlyData[]>('/transactions/monthly'));
+      return data;
+    }),
 };
