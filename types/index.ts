@@ -15,6 +15,7 @@ export interface Transaction {
   amount: number;
   recipient: string;
   upiId: string;
+  bank?: string;
   note: string;
   category: Category;
   source: TransactionSource;

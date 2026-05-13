@@ -1,10 +1,14 @@
-import { useEffect, useRef } from 'react';
-import { Animated, View, ViewStyle, StyleSheet } from 'react-native';
+import { useEffect } from "react";
+import { View, ViewStyle, StyleSheet, Dimensions } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+  withSequence,
+  Easing,
+} from "react-native-reanimated";
 
-// Pulsing rectangle used as a placeholder while data loads. Composes naturally:
-// a screen renders a tree of <Skeleton width={...} height={...} /> blocks
-// shaped like the eventual content, and the user sees motion instead of a
-// blank spinner while the fetch resolves.
 type Props = {
   width?: number | string;
   height?: number;
@@ -12,25 +16,35 @@ type Props = {
   style?: ViewStyle;
 };
 
-export default function Skeleton({ width = '100%', height = 14, radius = 6, style }: Props) {
-  const opacity = useRef(new Animated.Value(0.4)).current;
+export default function Skeleton({
+  width = "100%",
+  height = 14,
+  radius = 6,
+  style,
+}: Props) {
+  const opacity = useSharedValue(0.4);
 
   useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, { toValue: 0.85, duration: 700, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 0.4, duration: 700, useNativeDriver: true }),
-      ]),
+    opacity.value = withRepeat(
+      withSequence(
+        withTiming(0.85, { duration: 700, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0.4, { duration: 700, easing: Easing.inOut(Easing.ease) }),
+      ),
+      -1,
+      true,
     );
-    loop.start();
-    return () => loop.stop();
-  }, [opacity]);
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
 
   return (
     <Animated.View
       style={[
         styles.base,
-        { width: width as any, height, borderRadius: radius, opacity },
+        { width: width as any, height, borderRadius: radius },
+        animatedStyle,
         style,
       ]}
     />
@@ -57,10 +71,10 @@ export function SkeletonCard({ height = 88 }: { height?: number }) {
 }
 
 const styles = StyleSheet.create({
-  base: { backgroundColor: '#e5e7eb' },
+  base: { backgroundColor: "#e5e7eb" },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     paddingHorizontal: 14,
     paddingVertical: 13,

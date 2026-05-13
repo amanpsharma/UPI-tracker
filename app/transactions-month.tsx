@@ -203,7 +203,10 @@ export default function TransactionsMonthScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f5f5" },
+  container: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+  },
   center: { flex: 1, justifyContent: "center", alignItems: "center", gap: 10 },
 
   // Header
@@ -229,7 +232,11 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   headerCenter: { flex: 1 },
-  headerTitle: { fontSize: 20, fontWeight: "800", color: "#111827" },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#111827",
+  },
   headerSub: {
     fontSize: 12,
     color: "#9ca3af",
@@ -270,18 +277,36 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  avatarText: { fontSize: 16, fontWeight: "700" },
+  avatarText: {
+    fontSize: 16,
+    fontWeight: "700",
+    fontFamily: "GeistMono_600SemiBold",
+  },
   txInfo: { flex: 1 },
   txName: {
     fontSize: 14,
     fontWeight: "600",
     color: "#111827",
+    fontFamily: "GeistMono_600SemiBold",
     marginBottom: 3,
   },
   txMeta: { flexDirection: "row", alignItems: "center", gap: 5 },
   catDot: { width: 7, height: 7, borderRadius: 2 },
-  txMetaText: { fontSize: 12, color: "#9ca3af" },
-  txAmount: { fontSize: 14, fontWeight: "700" },
+  txMetaText: {
+    fontSize: 12,
+    color: "#9ca3af",
+    fontFamily: "GeistMono_600SemiBold",
+  },
+  txAmount: {
+    fontSize: 14,
+    fontWeight: "700",
+    fontFamily: "GeistMono_600SemiBold",
+  },
 
-  emptyText: { fontSize: 14, color: "#9ca3af", fontWeight: "500" },
+  emptyText: {
+    fontSize: 14,
+    color: "#9ca3af",
+    fontWeight: "500",
+    fontFamily: "GeistMono_600SemiBold",
+  },
 });
