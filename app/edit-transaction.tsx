@@ -53,7 +53,6 @@ export default function EditTransaction() {
   const [snack, setSnack] = useState("");
 
   useEffect(() => {
-    console.log("Loaded params:", params);
     if (params.amount) setAmount(params.amount);
     if (params.recipient) setRecipient(params.recipient);
     if (params.upiId) setUpiId(params.upiId);
@@ -62,8 +61,9 @@ export default function EditTransaction() {
     if (params.type) setTxType(params.type as "sent" | "received");
   }, [params.id]);
 
-  const isValid =
-    !!amount.trim() && parseFloat(amount) > 0 && !!recipient.trim();
+  const parsedAmount = parseFloat(amount);
+  const isValidAmount = !!amount.trim() && !isNaN(parsedAmount) && parsedAmount > 0 && parsedAmount <= 10_000_000;
+  const isValid = isValidAmount && !!recipient.trim();
 
   const txDate = params.paidAt ? new Date(params.paidAt) : new Date();
   const dateLabel = isToday(txDate)
@@ -74,15 +74,15 @@ export default function EditTransaction() {
   const timeLabel = format(txDate, "HH:mm");
 
   const handleSave = async () => {
-    const parsed = parseFloat(amount);
     if (!recipient.trim()) {
       setSnack("Recipient name is required.");
       return;
     }
-    if (isNaN(parsed) || parsed <= 0) {
-      setSnack("Enter a valid amount.");
+    if (!isValidAmount) {
+      setSnack("Enter a valid amount (1 - 1,00,00,000).");
       return;
     }
+    const parsed = parsedAmount;
     setSaving(true);
     try {
       await api.updateTransaction(params.id!, {

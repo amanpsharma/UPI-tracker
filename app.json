@@ -37,6 +37,13 @@
       "expo-font",
       "@react-native-community/datetimepicker"
     ],
-    "scheme": "upi-tracker"
+    "scheme": "upi-tracker",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3c5b481e-b3bf-487d-828a-d9c2a626fa76"
+      }
+    },
+    "owner": "amanpsharma"
   }
 }

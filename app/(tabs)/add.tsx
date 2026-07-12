@@ -40,8 +40,9 @@ export default function AddTransaction() {
   const [loading, setLoading] = useState(false);
   const [snack, setSnack] = useState("");
 
-  const isValid =
-    !!amount.trim() && parseFloat(amount) > 0 && !!recipient.trim();
+  const parsedAmount = parseFloat(amount);
+  const isValidAmount = !!amount.trim() && !isNaN(parsedAmount) && parsedAmount > 0 && parsedAmount <= 10_000_000;
+  const isValid = isValidAmount && !!recipient.trim();
 
   const dateLabel = isToday(date)
     ? "Today"
@@ -51,15 +52,15 @@ export default function AddTransaction() {
   const timeLabel = format(date, "HH:mm");
 
   const handleSave = async () => {
-    const parsed = parseFloat(amount);
     if (!recipient.trim()) {
       setSnack("Recipient name is required.");
       return;
     }
-    if (isNaN(parsed) || parsed <= 0) {
-      setSnack("Enter a valid amount.");
+    if (!isValidAmount) {
+      setSnack("Enter a valid amount (1 – 1,00,00,000).");
       return;
     }
+    const parsed = parsedAmount;
     setLoading(true);
     try {
       await api.addTransaction({

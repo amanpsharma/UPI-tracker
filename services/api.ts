@@ -27,9 +27,6 @@ let _isSignedIn: boolean = false;
 export function setTokenProvider(fn: (() => Promise<string | null>) | null) {
   _getToken = fn;
 }
-// Kept for backwards-compatibility with existing imports — now a no-op.
-// Server only trusts cryptographically-verified JWTs.
-export function setUserId(_uid: string | null | undefined) {}
 export function setAuthState(isLoaded: boolean, isSignedIn: boolean) {
   _isLoaded = isLoaded;
   _isSignedIn = isSignedIn;
@@ -59,7 +56,9 @@ client.interceptors.request.use(async (config) => {
   for (let i = 0; i < 6; i++) {
     try {
       token = await _getToken();
-    } catch {}
+    } catch (err) {
+      console.warn('[API] Token fetch attempt failed:', err);
+    }
     if (token) break;
     await new Promise((r) => setTimeout(r, 500));
   }

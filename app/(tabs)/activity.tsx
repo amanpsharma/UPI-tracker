@@ -23,6 +23,7 @@ import { groupTransactionsByDate, DayGroup } from "@/utils/groupByDate";
 import SwipeableRow from "@/components/SwipeableRow";
 import Skeleton, { SkeletonTxRow } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
+import FadeInView from "@/components/FadeInView";
 
 const PAGE_SIZE = 50;
 
@@ -427,7 +428,7 @@ export default function ActivityScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f5f5" },
+  container: { flex: 1, backgroundColor: "#fafafa" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
 
   header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
@@ -447,7 +448,16 @@ const styles = StyleSheet.create({
   },
 
   searchRow: { paddingHorizontal: 16, marginBottom: 10 },
-  searchBar: { backgroundColor: "#fff", borderRadius: 30, height: 48 },
+  searchBar: {
+    backgroundColor: "#fff",
+    borderRadius: 30,
+    height: 48,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+  },
 
   chipScrollOuter: { height: 52, flexShrink: 0 },
   chipScroll: {
@@ -508,12 +518,12 @@ const styles = StyleSheet.create({
 
   dayCard: {
     backgroundColor: "#fff",
-    borderRadius: 14,
+    borderRadius: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
   },
 
   txRow: {

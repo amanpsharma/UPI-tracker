@@ -18,15 +18,17 @@ import { useFocusEffect, router } from "expo-router";
 import { format, subDays, eachDayOfInterval } from "date-fns";
 import * as Haptics from "expo-haptics";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { api } from "@/services/api";
 import { CATEGORY_COLORS, CATEGORY_ICONS } from "@/constants";
 import { avatarStyle } from "@/constants/ui";
 import { fmtShort } from "@/utils/format";
-import { Stats, Transaction } from "@/types";
-import { syncSmsToMongo } from "@/services/smsSyncAndroid";
+import { syncSmsToMongo, throttledSmsSync } from "@/services/smsSyncAndroid";
 import { showToast } from "@/services/toast";
+import { useStats, useTrend, useRecentTransactions, useInvalidateAll } from "@/hooks/useTransactions";
 import Skeleton, { SkeletonTxRow } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
+import FadeInView from "@/components/FadeInView";
+import AnimatedBar from "@/components/AnimatedBar";
+import PressableScale from "@/components/PressableScale";
 
 const BAR_AREA_HEIGHT = 80;
 
@@ -38,15 +40,18 @@ function getDayLabel(index: number, total: number): string {
 }
 
 export default function Dashboard() {
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [recent, setRecent] = useState<Transaction[]>([]);
-  const [trend, setTrend] = useState<{ date: string; total: number }[]>([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const appState = useRef<AppStateStatus>("active");
   const scrollRef = useRef<ScrollView>(null);
   const spinValue = useRef(new Animated.Value(0)).current;
+
+  const { data: stats = null, isLoading: statsLoading, refetch: refetchStats } = useStats();
+  const { data: recent = [], isLoading: recentLoading, refetch: refetchRecent } = useRecentTransactions(10);
+  const { data: trend = [], isLoading: trendLoading, refetch: refetchTrend } = useTrend(7);
+  const invalidateAll = useInvalidateAll();
+
+  const loading = statsLoading && recentLoading && trendLoading;
 
   useEffect(() => {
     if (syncing) {
@@ -80,9 +85,9 @@ export default function Dashboard() {
     if (Platform.OS !== "android") return;
     const sub = AppState.addEventListener("change", (next: AppStateStatus) => {
       if (appState.current.match(/inactive|background/) && next === "active") {
-        syncSmsToMongo()
+        throttledSmsSync()
           .then(({ imported }) => {
-            if (imported > 0) load();
+            if (imported > 0) invalidateAll();
           })
           .catch(() => {});
       }
@@ -91,47 +96,30 @@ export default function Dashboard() {
     return () => sub.remove();
   }, []);
 
-  const load = useCallback(async () => {
-    try {
-      const [s, txs, t] = await Promise.all([
-        api.getStats(),
-        api.getTransactions({ limit: 10 }),
-        api.getTrend(7),
-      ]);
-      setStats(s);
-      setRecent(txs);
-      setTrend(t);
-    } catch (err: any) {
-      console.error("[Dashboard Load Error]", err?.message || err);
-      // silently ignore — user sees empty state
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
   useFocusEffect(
     useCallback(() => {
-      load();
-    }, [load]),
+      refetchStats();
+      refetchRecent();
+      refetchTrend();
+    }, []),
   );
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // Pull-to-refresh on Android also re-scans SMS so newly arrived UPI payments
-    // are imported. We swallow sync errors (no permission, iOS, etc.) and still
-    // re-fetch from the server so the UI always updates.
     if (Platform.OS === "android") {
       try {
         await syncSmsToMongo();
-      } catch {}
+      } catch (err: any) {
+        // Log but don't block refresh
+        console.warn("[SMS Sync]", err?.message);
+      }
     }
-    await load();
+    await Promise.all([refetchStats(), refetchRecent(), refetchTrend()]);
+    setRefreshing(false);
   };
 
   const handleScanSms = async () => {
     if (Platform.OS !== "android") return;
-    // Scroll to top and activate the RefreshControl spinner
     scrollRef.current?.scrollTo({ y: 0, animated: true });
     setRefreshing(true);
     setSyncing(true);
@@ -147,12 +135,12 @@ export default function Dashboard() {
       } else {
         showToast("All transactions are up to date", "info");
       }
-      await load();
+      await Promise.all([refetchStats(), refetchRecent(), refetchTrend()]);
       scrollRef.current?.scrollTo({ y: 0, animated: true });
     } catch (err: any) {
       showToast(err?.message ?? "SMS sync failed", "error");
-      setRefreshing(false);
     } finally {
+      setRefreshing(false);
       setSyncing(false);
     }
   };
@@ -267,6 +255,7 @@ export default function Dashboard() {
         showsVerticalScrollIndicator={false}
       >
         {/* ── Header ── */}
+        <FadeInView delay={0} duration={600}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={styles.spentLabel}>Spent in {monthName}</Text>
@@ -309,8 +298,10 @@ export default function Dashboard() {
             </TouchableOpacity>
           )}
         </View>
+        </FadeInView>
 
         {/* ── 7-Day Bar Chart ── */}
+        <FadeInView delay={150} duration={500}>
         <View style={styles.chartCard}>
           <View style={styles.chartHeader}>
             <Text style={styles.chartLabel}>LAST 7 DAYS</Text>
@@ -330,43 +321,33 @@ export default function Dashboard() {
                   ? Math.max(10, (bar.value / chartMax) * BAR_AREA_HEIGHT)
                   : 8;
               return (
-                <View key={i} style={styles.barCol}>
-                  <Text style={styles.barValueLabel}>
-                    {bar.value > 0 ? fmtShort(bar.value) : ""}
-                  </Text>
-                  <View
-                    style={[
-                      styles.bar,
-                      {
-                        height: barH,
-                        backgroundColor: bar.isToday ? "#1a1a1a" : "#e5e7eb",
-                        opacity: bar.value === 0 && !bar.isToday ? 0.5 : 1,
-                      },
-                    ]}
-                  />
-                  <Text
-                    style={[
-                      styles.barDayLabel,
-                      bar.isToday && styles.barDayLabelToday,
-                    ]}
-                  >
-                    {bar.label}
-                  </Text>
-                </View>
+                <AnimatedBar
+                  key={i}
+                  height={barH}
+                  maxHeight={BAR_AREA_HEIGHT}
+                  color={bar.isToday ? "#1a1a1a" : "#e5e7eb"}
+                  label={bar.label}
+                  valueLabel={bar.value > 0 ? fmtShort(bar.value) : ""}
+                  index={i}
+                  isToday={bar.isToday}
+                />
               );
             })}
           </View>
         </View>
+        </FadeInView>
 
         {/* ── Category Cards ── */}
         {stats && stats.byCategory.length > 0 && (
+          <FadeInView delay={300} from="right" duration={500}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoryScroll}
           >
-            {stats.byCategory.map((cat) => (
-              <View key={cat._id} style={styles.catCard}>
+            {stats.byCategory.map((cat, idx) => (
+              <FadeInView key={cat._id} delay={350 + idx * 60} from="right" distance={30}>
+              <View style={styles.catCard}>
                 <View style={styles.catCardTop}>
                   <MaterialCommunityIcons
                     name={CATEGORY_ICONS[cat._id] as any}
@@ -377,11 +358,14 @@ export default function Dashboard() {
                 </View>
                 <Text style={styles.catCardAmount}>-{fmtShort(cat.total)}</Text>
               </View>
+              </FadeInView>
             ))}
           </ScrollView>
+          </FadeInView>
         )}
 
         {/* ── Recent Transactions ── */}
+        <FadeInView delay={400} duration={500}>
         <View style={styles.recentSection}>
           <View style={styles.recentHeader}>
             <Text style={styles.recentLabel}>RECENT</Text>
@@ -422,7 +406,7 @@ export default function Dashboard() {
                     const isFirst = i === 0;
                     const isLast = i === group.transactions.length - 1;
                     return (
-                      <TouchableOpacity
+                      <PressableScale
                         key={tx._id}
                         style={[
                           styles.txRow,
@@ -430,7 +414,6 @@ export default function Dashboard() {
                           isLast && styles.txRowLast,
                           !isLast && styles.txRowSep,
                         ]}
-                        activeOpacity={0.7}
                         onPress={() =>
                           router.push({
                             pathname: "/transaction-detail",
@@ -473,7 +456,7 @@ export default function Dashboard() {
                           {isSent ? "-" : "+"}₹
                           {tx.amount.toLocaleString("en-IN")}
                         </Text>
-                      </TouchableOpacity>
+                      </PressableScale>
                     );
                   })}
                 </View>
@@ -481,13 +464,14 @@ export default function Dashboard() {
             ))
           )}
         </View>
+        </FadeInView>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f5f5" },
+  container: { flex: 1, backgroundColor: "#fafafa" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   scroll: { paddingBottom: 40 },
 
@@ -499,7 +483,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 24,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#fafafa",
   },
   headerLeft: { flex: 1, gap: 2 },
   spentLabel: {
@@ -550,13 +534,13 @@ const styles = StyleSheet.create({
   chartCard: {
     backgroundColor: "#fff",
     marginHorizontal: 16,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 20,
+    padding: 18,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
   },
   chartHeader: {
     flexDirection: "row",
@@ -629,15 +613,15 @@ const styles = StyleSheet.create({
   },
   catCard: {
     backgroundColor: "#fff",
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 14,
     minWidth: 120,
     gap: 8,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
   },
   catCardTop: { flexDirection: "row", alignItems: "center", gap: 6 },
   catCardName: {
@@ -697,12 +681,12 @@ const styles = StyleSheet.create({
   },
   dayCard: {
     backgroundColor: "#fff",
-    borderRadius: 14,
+    borderRadius: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
   },
   txRow: {
     flexDirection: "row",

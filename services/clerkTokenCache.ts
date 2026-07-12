@@ -7,18 +7,23 @@ export const tokenCache: TokenCache = {
   async getToken(key: string) {
     try {
       return await SecureStore.getItemAsync(key);
-    } catch {
+    } catch (err) {
+      console.warn('[TokenCache] Failed to get token:', err);
       return null;
     }
   },
   async saveToken(key: string, value: string) {
     try {
       await SecureStore.setItemAsync(key, value);
-    } catch {}
+    } catch (err) {
+      console.warn('[TokenCache] Failed to save token:', err);
+    }
   },
   async clearToken(key: string) {
     try {
       await SecureStore.deleteItemAsync(key);
-    } catch {}
+    } catch (err) {
+      console.warn('[TokenCache] Failed to clear token:', err);
+    }
   },
 };

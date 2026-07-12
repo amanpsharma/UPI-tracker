@@ -18,7 +18,9 @@ async function getLastSyncDate(): Promise<Date> {
       const parsed = parseInt(raw, 10);
       if (!isNaN(parsed) && parsed > 0) return new Date(parsed);
     }
-  } catch {}
+  } catch (err) {
+    console.warn('[SMS Sync] Failed to read last sync date:', err);
+  }
   // First sync ever — go back a full year
   return new Date(Date.now() - ONE_YEAR_MS);
 }
@@ -26,13 +28,33 @@ async function getLastSyncDate(): Promise<Date> {
 async function saveLastSyncDate(date: Date): Promise<void> {
   try {
     await AsyncStorage.setItem(LAST_SYNC_KEY, String(date.getTime()));
-  } catch {}
+  } catch (err) {
+    console.warn('[SMS Sync] Failed to save sync date:', err);
+  }
 }
 
 export async function clearSmsSyncTimestamp(): Promise<void> {
   try {
     await AsyncStorage.removeItem(LAST_SYNC_KEY);
-  } catch {}
+  } catch (err) {
+    console.warn('[SMS Sync] Failed to clear sync timestamp:', err);
+  }
+}
+
+// Throttle: skip sync if last successful sync was < 5 minutes ago.
+// Used for automatic background syncs (app focus). Manual "Scan SMS" bypasses this.
+const THROTTLE_MS = 5 * 60 * 1000;
+let lastSyncAttempt = 0;
+
+export async function throttledSmsSync(
+  sinceDate?: Date,
+): Promise<{ scanned: number; found: number; imported: number }> {
+  const now = Date.now();
+  if (now - lastSyncAttempt < THROTTLE_MS) {
+    return { scanned: 0, found: 0, imported: 0 };
+  }
+  lastSyncAttempt = now;
+  return syncSmsToMongo(sinceDate);
 }
 
 export async function requestSmsPermission(): Promise<boolean> {

@@ -3,16 +3,16 @@ import {
   ClerkProvider,
   ClerkLoaded,
   useAuth,
-  useUser,
   useSession,
   useClerk,
 } from "@clerk/clerk-expo";
 import { tokenCache } from "@/services/clerkTokenCache";
-import { setTokenProvider, setUserId, setAuthState, onUnauthorized } from "@/services/api";
+import { setTokenProvider, setAuthState, onUnauthorized } from "@/services/api";
 import { showToast } from "@/services/toast";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ServerWakingBanner from "@/components/ServerWakingBanner";
 import Toast from "@/components/Toast";
+import QueryProvider from "@/providers/QueryProvider";
 import { Stack, useRouter, useSegments } from "expo-router";
 import {
   PaperProvider,
@@ -108,35 +108,16 @@ function AuthGuard() {
   return null;
 }
 
-// Wires up the userId for API requests on every render. Tries every Clerk API
-// available because useAuth().userId has been observed to stay null even when
-// the user is signed in. Whichever source has a value first wins.
+// Wires up the token provider for API requests. Tries multiple Clerk APIs
+// for token retrieval as fallback.
 function TokenSetup() {
   const {
     getToken: getTokenFromAuth,
-    userId: authUserId,
     isSignedIn,
     isLoaded,
   } = useAuth();
-  const { user } = useUser();
   const { session } = useSession();
   const clerk = useClerk();
-
-  const resolvedId =
-    authUserId ||
-    user?.id ||
-    session?.user?.id ||
-    clerk?.user?.id ||
-    clerk?.session?.user?.id ||
-    null;
-
-  // Only clobber _userId if we are SURE the user is signed out.
-  // Otherwise update with whatever we have (or keep previous if all null in a transient render).
-  if (resolvedId) {
-    setUserId(resolvedId);
-  } else if (isLoaded && isSignedIn === false) {
-    setUserId(null);
-  }
 
   setAuthState(isLoaded, !!isSignedIn);
 
@@ -195,6 +176,7 @@ export default function RootLayout() {
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <ClerkLoaded>
+        <QueryProvider>
         <TokenSetup />
         <AuthGuard />
         <GestureHandlerRootView style={{ flex: 1 }}>
@@ -235,6 +217,7 @@ export default function RootLayout() {
             <Toast />
           </PaperProvider>
         </GestureHandlerRootView>
+        </QueryProvider>
       </ClerkLoaded>
     </ClerkProvider>
   );

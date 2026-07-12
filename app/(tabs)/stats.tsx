@@ -1,53 +1,36 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { View, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, Alert } from 'react-native';
 import { Text, ActivityIndicator } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, router } from 'expo-router';
-import { format, parseISO, addMonths, subMonths, isSameMonth } from 'date-fns';
+import { format, addMonths, subMonths, isSameMonth } from 'date-fns';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { PieChart } from 'react-native-gifted-charts';
-import { api } from '@/services/api';
 import { CATEGORY_COLORS, CATEGORY_ICONS } from '@/constants';
 import { CAT_DISPLAY } from '@/constants/ui';
 import { fmtShort, fmtFull } from '@/utils/format';
-import { Stats } from '@/types';
+import { useStats } from '@/hooks/useTransactions';
 
 const BG = '#f5f4f0';
 
 const TODAY = new Date();
 
 export default function InsightsScreen() {
-  const [stats, setStats] = useState<Stats | null>(null);
   const [selectedDate, setSelectedDate] = useState(TODAY);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState('');
 
   const isCurrentMonth = isSameMonth(selectedDate, TODAY);
   const monthParam = format(selectedDate, 'yyyy-MM');
 
-  const load = useCallback(async () => {
-    try {
-      setError('');
-      const s = await api.getStats(format(selectedDate, 'yyyy-MM'));
-      setStats(s);
-    } catch (err: any) {
-      setError(err.message ?? 'Failed to load insights.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [monthParam]);
+  const { data: stats = null, isLoading: loading, error: queryError, refetch } = useStats(monthParam);
+  const [refreshing, setRefreshing] = useState(false);
+  const error = queryError?.message ?? '';
 
-  // Re-fetch when month changes (load recreated due to monthParam dependency)
-  useEffect(() => { load(); }, [load]);
-  // Also re-fetch silently when tab regains focus (e.g. after editing a transaction category)
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusEffect(useCallback(() => { refetch(); }, [monthParam]));
 
-  const onRefresh = () => { setRefreshing(true); load(); };
+  const onRefresh = async () => { setRefreshing(true); await refetch(); setRefreshing(false); };
 
-  const prevMonth = () => { setStats(null); setSelectedDate((d) => subMonths(d, 1)); };
-  const nextMonth = () => { if (!isCurrentMonth) { setStats(null); setSelectedDate((d) => addMonths(d, 1)); } };
+  const prevMonth = () => { setSelectedDate((d) => subMonths(d, 1)); };
+  const nextMonth = () => { if (!isCurrentMonth) { setSelectedDate((d) => addMonths(d, 1)); } };
 
   if (loading) {
     return (
