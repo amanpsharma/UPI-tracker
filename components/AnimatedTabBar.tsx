@@ -1,16 +1,14 @@
 import React, { useEffect } from "react";
 import { View, TouchableOpacity, StyleSheet, Platform } from "react-native";
-import { Text } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
-  interpolate,
-  Extrapolation,
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
+import { colors, fonts, radius } from "@/constants/theme";
 
 type TabItem = {
   name: string;
@@ -21,10 +19,10 @@ type TabItem = {
 
 const TABS: TabItem[] = [
   { name: "index", label: "Home", icon: "home-outline", iconFocused: "home" },
-  { name: "activity", label: "Activity", icon: "format-list-bulleted", iconFocused: "format-list-bulleted" },
+  { name: "activity", label: "Activity", icon: "swap-horizontal", iconFocused: "swap-horizontal" },
   { name: "history", label: "History", icon: "calendar-month-outline", iconFocused: "calendar-month" },
-  { name: "stats", label: "Insights", icon: "chart-donut-variant", iconFocused: "chart-donut-variant" },
-  { name: "settings", label: "Settings", icon: "account-circle-outline", iconFocused: "account-circle" },
+  { name: "stats", label: "Insights", icon: "chart-arc", iconFocused: "chart-arc" },
+  { name: "settings", label: "Profile", icon: "account-outline", iconFocused: "account" },
 ];
 
 function TabButton({
@@ -37,24 +35,25 @@ function TabButton({
   onPress: () => void;
 }) {
   const scale = useSharedValue(1);
-  const iconScale = useSharedValue(focused ? 1 : 0.9);
-  const labelOpacity = useSharedValue(focused ? 1 : 0.6);
+  const iconTranslateY = useSharedValue(focused ? -2 : 0);
+  const indicatorWidth = useSharedValue(focused ? 18 : 0);
 
   useEffect(() => {
-    iconScale.value = withSpring(focused ? 1 : 0.9, { damping: 12, stiffness: 180 });
-    labelOpacity.value = withTiming(focused ? 1 : 0.6, { duration: 200 });
+    iconTranslateY.value = withSpring(focused ? -2 : 0, { damping: 14, stiffness: 200 });
+    indicatorWidth.value = withSpring(focused ? 18 : 0, { damping: 14, stiffness: 200 });
   }, [focused]);
 
   const containerStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
 
-  const iconContainerStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: iconScale.value }],
+  const iconStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: iconTranslateY.value }],
   }));
 
-  const labelStyle = useAnimatedStyle(() => ({
-    opacity: labelOpacity.value,
+  const indicatorStyle = useAnimatedStyle(() => ({
+    width: indicatorWidth.value,
+    opacity: indicatorWidth.value > 0 ? 1 : 0,
   }));
 
   const handlePress = () => {
@@ -72,22 +71,22 @@ function TabButton({
       style={styles.tabButton}
     >
       <Animated.View style={[styles.tabContent, containerStyle]}>
-        <Animated.View style={[styles.iconWrap, focused && styles.iconWrapActive, iconContainerStyle]}>
+        <Animated.View style={[focused && styles.iconBg, iconStyle]}>
           <MaterialCommunityIcons
             name={(focused ? tab.iconFocused : tab.icon) as any}
-            size={24}
-            color={focused ? "#111827" : "#9ca3af"}
+            size={22}
+            color={focused ? colors.primary : colors.textMuted}
           />
         </Animated.View>
         <Animated.Text
           style={[
             styles.label,
             focused && styles.labelActive,
-            labelStyle,
           ]}
         >
           {tab.label}
         </Animated.Text>
+        <Animated.View style={[styles.indicator, indicatorStyle]} />
       </Animated.View>
     </TouchableOpacity>
   );
@@ -100,52 +99,59 @@ export default function AnimatedTabBar({
 }: any) {
   return (
     <View style={styles.container}>
-      {state.routes
-        .filter((route: any) => {
-          const tab = TABS.find((t) => t.name === route.name);
-          return !!tab;
-        })
-        .map((route: any, index: number) => {
-          const tab = TABS.find((t) => t.name === route.name);
-          if (!tab) return null;
+      <View style={styles.inner}>
+        {state.routes
+          .filter((route: any) => {
+            const tab = TABS.find((t) => t.name === route.name);
+            return !!tab;
+          })
+          .map((route: any) => {
+            const tab = TABS.find((t) => t.name === route.name);
+            if (!tab) return null;
 
-          const focused = state.index === state.routes.indexOf(route);
+            const focused = state.index === state.routes.indexOf(route);
 
-          return (
-            <TabButton
-              key={route.key}
-              tab={tab}
-              focused={focused}
-              onPress={() => {
-                const event = navigation.emit({
-                  type: "tabPress",
-                  target: route.key,
-                  canPreventDefault: true,
-                });
-                if (!focused && !event.defaultPrevented) {
-                  navigation.navigate(route.name);
-                }
-              }}
-            />
-          );
-        })}
+            return (
+              <TabButton
+                key={route.key}
+                tab={tab}
+                focused={focused}
+                onPress={() => {
+                  const event = navigation.emit({
+                    type: "tabPress",
+                    target: route.key,
+                    canPreventDefault: true,
+                  });
+                  if (!focused && !event.defaultPrevented) {
+                    navigation.navigate(route.name);
+                  }
+                }}
+              />
+            );
+          })}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    paddingHorizontal: 16,
+    paddingBottom: Platform.OS === "ios" ? 20 : 8,
+    paddingTop: 6,
+    backgroundColor: colors.bg,
+  },
+  inner: {
     flexDirection: "row",
-    backgroundColor: "#ffffff",
-    borderTopColor: "#f3f4f6",
-    borderTopWidth: 1,
-    paddingBottom: Platform.OS === "ios" ? 24 : 10,
-    paddingTop: 8,
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
-    elevation: 12,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 8,
   },
   tabButton: {
     flex: 1,
@@ -155,25 +161,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 3,
   },
-  iconWrap: {
-    width: 40,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconWrapActive: {
-    backgroundColor: "#f0f0f0",
+  iconBg: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: 10,
+    padding: 4,
   },
   label: {
     fontSize: 10,
     fontWeight: "500",
-    color: "#9ca3af",
-    fontFamily: "Inter_500Medium",
+    color: colors.textMuted,
+    fontFamily: fonts.medium,
   },
   labelActive: {
-    color: "#111827",
-    fontWeight: "700",
-    fontFamily: "Inter_700Bold",
+    color: colors.primary,
+    fontWeight: "600",
+    fontFamily: fonts.semibold,
+  },
+  indicator: {
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: colors.primary,
+    marginTop: 2,
   },
 });

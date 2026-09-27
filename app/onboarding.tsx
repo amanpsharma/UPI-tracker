@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
+import { colors, fonts } from '@/constants/theme';
 
 const { width, height } = Dimensions.get('window');
 export const ONBOARDING_KEY = '@upi_onboarding_done';
@@ -16,13 +17,13 @@ function AppLogo({ size = 96 }: { size?: number }) {
   return (
     <View style={{
       width: size, height: size, borderRadius: radius,
-      backgroundColor: '#111827',
+      backgroundColor: colors.primary,
       justifyContent: 'center', alignItems: 'center',
     }}>
-      <Text style={{ color: '#fff', fontSize: size * 0.44, fontWeight: '800', lineHeight: size * 0.52 }}>₹</Text>
+      <Text style={{ color: colors.text, fontSize: size * 0.44, fontWeight: '800', fontFamily: fonts.extrabold, lineHeight: size * 0.52 }}>₹</Text>
       <View style={{
         position: 'absolute', bottom: size * 0.1, right: size * 0.08,
-        backgroundColor: '#22c55e', borderRadius: size * 0.1,
+        backgroundColor: colors.success, borderRadius: size * 0.1,
         width: size * 0.3, height: size * 0.3,
         justifyContent: 'center', alignItems: 'center',
       }}>
@@ -42,14 +43,14 @@ const slides: Slide[] = [
   {
     type: 'feature',
     icon: 'message-text-outline',
-    accent: '#22c55e',
+    accent: colors.success,
     title: 'Auto-detect Payments',
     body: 'UPI Tracker reads your bank SMS messages and automatically imports every UPI payment — no manual entry needed.',
   },
   {
     type: 'feature',
     icon: 'chart-donut-variant',
-    accent: '#3b82f6',
+    accent: colors.primary,
     title: 'Insights at a Glance',
     body: 'See exactly where your money goes — by category, month, and trend. Every rupee, accounted for.',
   },
@@ -77,7 +78,7 @@ export default function Onboarding() {
 
   return (
     <SafeAreaView style={[styles.root, isBrand && styles.rootDark]}>
-      <StatusBar barStyle={isBrand ? 'light-content' : 'dark-content'} />
+      <StatusBar barStyle="dark-content" />
 
       <ScrollView
         ref={scroll}
@@ -148,7 +149,7 @@ export default function Onboarding() {
           <MaterialCommunityIcons
             name={isLast ? 'arrow-right' : 'arrow-right'}
             size={16}
-            color={isLast ? '#fff' : '#111827'}
+            color={colors.text}
           />
         </TouchableOpacity>
       </View>
@@ -157,8 +158,8 @@ export default function Onboarding() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#f5f4f0' },
-  rootDark: { backgroundColor: '#111827' },
+  root: { flex: 1, backgroundColor: colors.bg },
+  rootDark: { backgroundColor: colors.bg },
 
   // Brand slide
   brandSlide: {
@@ -167,16 +168,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 36, gap: 16,
   },
   brandName: {
-    fontSize: 28, fontWeight: '800', color: '#fff',
-    letterSpacing: -0.5, marginTop: 12,
+    fontSize: 28, fontWeight: '800', color: colors.text,
+    letterSpacing: -0.5, marginTop: 12, fontFamily: fonts.extrabold,
   },
   brandTagline: {
-    fontSize: 20, fontWeight: '700', color: '#fff',
-    letterSpacing: -0.3, textAlign: 'center',
+    fontSize: 20, fontWeight: '700', color: colors.text,
+    letterSpacing: -0.3, textAlign: 'center', fontFamily: fonts.bold,
   },
-  brandAccent: { color: '#22c55e' },
+  brandAccent: { color: colors.success },
   brandSub: {
-    fontSize: 13, color: 'rgba(255,255,255,0.5)',
+    fontSize: 13, color: colors.textMuted,
     textAlign: 'center', lineHeight: 20, marginTop: 4,
   },
 
@@ -191,36 +192,36 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center', marginBottom: 8,
   },
   featureTitle: {
-    fontSize: 26, fontWeight: '800', color: '#111827',
-    textAlign: 'center', letterSpacing: -0.5,
+    fontSize: 26, fontWeight: '800', color: colors.text,
+    textAlign: 'center', letterSpacing: -0.5, fontFamily: fonts.extrabold,
   },
   featureBody: {
-    fontSize: 15, color: '#6b7280', textAlign: 'center',
+    fontSize: 15, color: colors.textSecondary, textAlign: 'center',
     lineHeight: 24,
   },
 
   // Dots
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, paddingBottom: 16 },
-  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#d1d5db' },
-  dotActive: { width: 22, backgroundColor: '#111827' },
-  dotDark: { backgroundColor: 'rgba(255,255,255,0.25)' },
-  dotActiveDark: { width: 22, backgroundColor: '#22c55e' },
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.border },
+  dotActive: { width: 22, backgroundColor: colors.primaryLight },
+  dotDark: { backgroundColor: colors.border },
+  dotActiveDark: { width: 22, backgroundColor: colors.primary },
 
   // Navigation
   nav: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 28, paddingBottom: 28,
   },
-  skip: { color: '#9ca3af', fontSize: 15, fontWeight: '600' },
-  skipDark: { color: 'rgba(255,255,255,0.4)' },
+  skip: { color: colors.textMuted, fontSize: 15, fontWeight: '600', fontFamily: fonts.semibold },
+  skipDark: { color: colors.textMuted },
   nextBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#fff', borderRadius: 30,
+    backgroundColor: colors.surface, borderRadius: 30,
     paddingHorizontal: 22, paddingVertical: 12,
     shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
   },
-  nextBtnFilled: { backgroundColor: '#111827' },
-  nextText: { color: '#111827', fontWeight: '700', fontSize: 15 },
-  nextTextFilled: { color: '#fff' },
+  nextBtnFilled: { backgroundColor: colors.primary },
+  nextText: { color: colors.text, fontWeight: '700', fontSize: 15, fontFamily: fonts.bold },
+  nextTextFilled: { color: colors.text },
 });

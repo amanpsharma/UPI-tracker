@@ -138,8 +138,8 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 4,
   },
-  dividerLine: { flex: 1, height: 1, backgroundColor: "#e0e0e0" },
-  dividerText: { color: "#aaa", fontSize: 12 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: "#E8EBF0" },
+  dividerText: { color: "#8F95A8", fontSize: 12 },
 
   row: { flexDirection: "row", gap: 8 },
 

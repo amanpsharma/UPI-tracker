@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0, left: 0, right: 0,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: '#111827',
+    backgroundColor: '#6366F1',
     paddingTop: 50, paddingBottom: 10, paddingHorizontal: 16,
     zIndex: 9999,
   },

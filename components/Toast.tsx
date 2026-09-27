@@ -4,9 +4,9 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { subscribeToast, ToastMessage } from '@/services/toast';
 
 const VARIANT = {
-  success: { bg: '#16a34a', icon: 'check-circle' as const },
-  error: { bg: '#dc2626', icon: 'alert-circle' as const },
-  info: { bg: '#111827', icon: 'information' as const },
+  success: { bg: '#10B981', icon: 'check-circle' as const },
+  error: { bg: '#EF4444', icon: 'alert-circle' as const },
+  info: { bg: '#6366F1', icon: 'information' as const },
 };
 
 const SHOW_MS = 2200;

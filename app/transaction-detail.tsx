@@ -18,8 +18,7 @@ import { CATEGORY_COLORS } from "@/constants";
 import { avatarStyle, CAT_DISPLAY } from "@/constants/ui";
 import { showToast } from "@/services/toast";
 import { Transaction } from "@/types";
-
-const BG = "#f5f4f0";
+import { colors, fonts, radius } from "@/constants/theme";
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
@@ -148,7 +147,7 @@ export default function TransactionDetail() {
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, styles.center]}>
-        <ActivityIndicator color="#111827" />
+        <ActivityIndicator color={colors.primary} />
       </SafeAreaView>
     );
   }
@@ -156,7 +155,7 @@ export default function TransactionDetail() {
   if (!tx) return null;
 
   const isSent = (tx.type ?? "sent") === "sent";
-  const catColor = CATEGORY_COLORS[tx.category] ?? "#9ca3af";
+  const catColor = CATEGORY_COLORS[tx.category] ?? colors.textMuted;
   const av = avatarStyle(tx.recipient || "U");
 
   return (
@@ -168,7 +167,7 @@ export default function TransactionDetail() {
           onPress={() => router.back()}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <MaterialCommunityIcons name="arrow-left" size={20} color="#111827" />
+          <MaterialCommunityIcons name="arrow-left" size={20} color={colors.text} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.headerBtn}
@@ -178,7 +177,7 @@ export default function TransactionDetail() {
           <MaterialCommunityIcons
             name="dots-horizontal"
             size={20}
-            color="#111827"
+            color={colors.text}
           />
         </TouchableOpacity>
       </View>
@@ -196,7 +195,7 @@ export default function TransactionDetail() {
           </View>
           <Text style={styles.recipientName}>{tx.recipient}</Text>
           <Text
-            style={[styles.amount, { color: isSent ? "#111827" : "#16a34a" }]}
+            style={[styles.amount, { color: isSent ? colors.text : colors.success }]}
           >
             {isSent ? "-" : "+"}₹{tx.amount.toLocaleString("en-IN")}
           </Text>
@@ -282,7 +281,7 @@ export default function TransactionDetail() {
 
         {deleting && (
           <View style={styles.deletingRow}>
-            <ActivityIndicator size="small" color="#ef4444" />
+            <ActivityIndicator size="small" color={colors.danger} />
             <Text style={styles.deletingText}>Deleting…</Text>
           </View>
         )}
@@ -321,7 +320,7 @@ function CardDivider() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BG },
+  container: { flex: 1, backgroundColor: colors.bg },
   center: { justifyContent: "center", alignItems: "center" },
 
   header: {
@@ -335,13 +334,13 @@ const styles = StyleSheet.create({
   headerBtn: {
     width: 38,
     height: 38,
-    backgroundColor: "#fff",
+    backgroundColor: colors.surfaceElevated,
     borderRadius: 19,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 1,
   },
@@ -365,13 +364,13 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 34,
     fontWeight: "700",
-    fontFamily: "Inter_700Bold",
+    fontFamily: fonts.bold,
   },
   recipientName: {
     fontSize: 15,
-    color: "#6b7280",
+    color: colors.textSecondary,
     fontWeight: "500",
-    fontFamily: "Inter_500Medium",
+    fontFamily: fonts.medium,
   },
   amount: {
     fontSize: 44,
@@ -391,17 +390,14 @@ const styles = StyleSheet.create({
   catPillText: {
     fontSize: 13,
     fontWeight: "600",
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: fonts.semibold,
   },
 
   card: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
     marginBottom: 20,
     overflow: "hidden",
   },
@@ -415,66 +411,65 @@ const styles = StyleSheet.create({
   },
   rowLabel: {
     fontSize: 14,
-    color: "#9ca3af",
+    color: colors.textMuted,
     fontWeight: "500",
-    fontFamily: "Inter_500Medium",
+    fontFamily: fonts.medium,
     flexShrink: 0,
   },
   rowValue: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#111827",
-    fontFamily: "Inter_600SemiBold",
+    color: colors.text,
+    fontFamily: fonts.semibold,
     textAlign: "right",
     flex: 1,
   },
   rowValueMono: {
     fontFamily: "GeistMono_400Regular",
     fontSize: 13,
-    color: "#374151",
+    color: colors.textSecondary,
   },
-  divider: { height: 1, backgroundColor: "#f3f4f6" },
+  divider: { height: 1, backgroundColor: colors.divider },
 
   smsSection: { marginBottom: 20 },
   smsSectionLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#9ca3af",
+    color: colors.textMuted,
     letterSpacing: 0.8,
-    fontFamily: "Inter_700Bold",
+    fontFamily: fonts.bold,
     marginBottom: 8,
     paddingLeft: 2,
   },
   smsBox: {
-    backgroundColor: "#ededeb",
-    borderRadius: 12,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radius.md,
     padding: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   smsText: {
     fontSize: 13,
-    color: "#6b7280",
+    color: colors.textSecondary,
     lineHeight: 20,
-    fontFamily: "Inter_400Regular",
+    fontFamily: fonts.regular,
   },
 
   actions: { flexDirection: "row", gap: 12 },
   actionBtn: {
     flex: 1,
-    backgroundColor: "#fff",
-    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
     paddingVertical: 16,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   actionBtnText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#111827",
-    fontFamily: "Inter_600SemiBold",
+    color: colors.text,
+    fontFamily: fonts.semibold,
   },
 
   deletingRow: {
@@ -486,7 +481,7 @@ const styles = StyleSheet.create({
   },
   deletingText: {
     fontSize: 13,
-    color: "#ef4444",
-    fontFamily: "Inter_400Regular",
+    color: colors.danger,
+    fontFamily: fonts.regular,
   },
 });

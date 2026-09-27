@@ -23,8 +23,7 @@ import {
   COLUMN_PREVIEW,
   ExportDateRange,
 } from "@/utils/exportCsv";
-
-const BG = "#f5f4f0";
+import { colors, fonts, radius } from "@/constants/theme";
 
 type Destination = "csv" | "sheets";
 
@@ -55,7 +54,7 @@ function DestinationCard({
         <MaterialCommunityIcons
           name={isSheets ? "google-spreadsheet" : "file-delimited-outline"}
           size={22}
-          color={selected ? (isSheets ? "#16a34a" : "#2563eb") : "#9ca3af"}
+          color={selected ? (isSheets ? colors.success : colors.secondary) : colors.textMuted}
         />
       </View>
       <View style={styles.destText}>
@@ -72,7 +71,7 @@ function DestinationCard({
         <MaterialCommunityIcons
           name="check"
           size={18}
-          color={isSheets ? "#16a34a" : "#2563eb"}
+          color={isSheets ? colors.success : colors.secondary}
         />
       )}
     </TouchableOpacity>
@@ -187,7 +186,7 @@ export default function ExportScreen() {
           }
           activeOpacity={0.7}
         >
-          <MaterialCommunityIcons name="arrow-left" size={22} color="#111827" />
+          <MaterialCommunityIcons name="arrow-left" size={22} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.title}>Export</Text>
       </View>
@@ -246,7 +245,7 @@ export default function ExportScreen() {
           activeOpacity={0.85}
         >
           {loading ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color={colors.text} />
           ) : (
             <Text style={styles.ctaText}>{ctaLabel}</Text>
           )}
@@ -264,7 +263,7 @@ export default function ExportScreen() {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BG },
+  container: { flex: 1, backgroundColor: colors.bg },
 
   header: {
     flexDirection: "row",
@@ -277,20 +276,20 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#fff",
+    backgroundColor: colors.surfaceElevated,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.2,
     shadowRadius: 3,
     elevation: 2,
   },
   title: {
     fontSize: 20,
     fontWeight: "800",
-    color: "#111827",
-    fontFamily: "Inter_800ExtraBold",
+    color: colors.text,
+    fontFamily: fonts.extrabold,
   },
 
   scroll: {
@@ -301,22 +300,19 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#9ca3af",
+    color: colors.textMuted,
     letterSpacing: 0.9,
-    fontFamily: "Inter_700Bold",
+    fontFamily: fonts.bold,
     marginBottom: 10,
   },
 
   // Destination cards
   destGroup: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
   },
   destCard: {
     flexDirection: "row",
@@ -326,32 +322,32 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   destCardSelected: {
-    backgroundColor: "#f0fdf4",
+    backgroundColor: colors.surfaceElevated,
   },
   destIcon: {
     width: 44,
     height: 44,
-    borderRadius: 12,
-    backgroundColor: "#f3f4f6",
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceElevated,
     justifyContent: "center",
     alignItems: "center",
   },
-  destIconSelectedSheets: { backgroundColor: "#dcfce7" },
-  destIconSelectedCsv: { backgroundColor: "#dbeafe" },
+  destIconSelectedSheets: { backgroundColor: colors.successSoft },
+  destIconSelectedCsv: { backgroundColor: colors.primarySoft },
   destText: { flex: 1 },
   destTitle: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#111827",
-    fontFamily: "Inter_700Bold",
+    color: colors.text,
+    fontFamily: fonts.bold,
     marginBottom: 2,
   },
   destSub: {
     fontSize: 12,
-    color: "#9ca3af",
-    fontFamily: "Inter_400Regular",
+    color: colors.textMuted,
+    fontFamily: fonts.regular,
   },
-  destDivider: { height: 1, backgroundColor: "#f3f4f6", marginHorizontal: 16 },
+  destDivider: { height: 1, backgroundColor: colors.divider, marginHorizontal: 16 },
 
   // Date range chips
   rangeRow: {
@@ -361,38 +357,38 @@ const styles = StyleSheet.create({
   rangeChip: {
     flex: 1,
     paddingVertical: 11,
-    borderRadius: 12,
-    backgroundColor: "#fff",
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   rangeChipActive: {
-    backgroundColor: "#111827",
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   rangeChipText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#374151",
-    fontFamily: "Inter_600SemiBold",
+    color: colors.textSecondary,
+    fontFamily: fonts.semibold,
   },
   rangeChipTextActive: {
-    color: "#fff",
+    color: colors.text,
   },
 
   // Columns preview
   columnsBox: {
-    backgroundColor: "#f3f4f6",
-    borderRadius: 12,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radius.md,
     paddingHorizontal: 14,
     paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   columnsText: {
     fontSize: 13,
-    color: "#6b7280",
+    color: colors.textSecondary,
     fontFamily: "GeistMono_400Regular",
     lineHeight: 20,
   },
@@ -400,15 +396,15 @@ const styles = StyleSheet.create({
   // CTA
   ctaBtn: {
     marginTop: 32,
-    backgroundColor: "#111827",
+    backgroundColor: colors.primary,
     borderRadius: 28,
     paddingVertical: 17,
     alignItems: "center",
     justifyContent: "center",
     minHeight: 56,
-    shadowColor: "#000",
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
@@ -416,14 +412,14 @@ const styles = StyleSheet.create({
   ctaText: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#fff",
-    fontFamily: "Inter_700Bold",
+    color: colors.text,
+    fontFamily: fonts.bold,
   },
   sheetsNote: {
     fontSize: 12,
-    color: "#c4c4c4",
+    color: colors.textMuted,
     textAlign: "center",
     marginTop: 12,
-    fontFamily: "Inter_400Regular",
+    fontFamily: fonts.regular,
   },
 });

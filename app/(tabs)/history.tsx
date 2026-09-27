@@ -17,8 +17,11 @@ import { CATEGORY_COLORS } from "@/constants";
 import { CAT_DISPLAY } from "@/constants/ui";
 import { fmtShort } from "@/utils/format";
 import { MonthlyData } from "@/types";
+import { colors, fonts, radius } from "@/constants/theme";
 
-const CHART_HEIGHT = 80;
+import AnimatedBar from "@/components/AnimatedBar";
+
+const CHART_HEIGHT = 120;
 
 function getBarLetter(monthStr: string): string {
   const [y, m] = monthStr.split("-").map(Number);
@@ -66,7 +69,6 @@ export default function HistoryScreen() {
     activeMonths.length > 0 ? totalSpent / activeMonths.length : 0;
   const chartMax = Math.max(...months.map((m) => m.spent), 1);
 
-  // Group by year, newest first
   const byYear: Record<string, MonthlyData[]> = {};
   months.forEach((m) => {
     const yr = m.month.slice(0, 4);
@@ -76,9 +78,9 @@ export default function HistoryScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={["top"]}>
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#1a1a1a" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </SafeAreaView>
     );
@@ -86,9 +88,9 @@ export default function HistoryScreen() {
 
   if (error) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={["top"]}>
         <View style={styles.center}>
-          <MaterialCommunityIcons name="wifi-off" size={40} color="#e5e7eb" />
+          <MaterialCommunityIcons name="wifi-off" size={40} color={colors.textMuted} />
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryBtn} onPress={load}>
             <Text style={styles.retryText}>Retry</Text>
@@ -99,7 +101,7 @@ export default function HistoryScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -107,7 +109,7 @@ export default function HistoryScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#1a1a1a"
+            tintColor={colors.primary}
           />
         }
       >
@@ -127,33 +129,23 @@ export default function HistoryScreen() {
             <Text style={styles.chartAvg}>avg -{fmtShort(avgMonthly)}</Text>
           </View>
           <View style={styles.barsRow}>
-            {months.map((m) => {
+            {months.map((m, idx) => {
               const isCurrent = m.month === currentMonthKey;
               const barH =
                 m.spent > 0
                   ? Math.max(10, (m.spent / chartMax) * CHART_HEIGHT)
                   : 6;
               return (
-                <View key={m.month} style={styles.barCol}>
-                  <View
-                    style={[
-                      styles.bar,
-                      {
-                        height: barH,
-                        backgroundColor: isCurrent ? "#1a1a1a" : "#e5e7eb",
-                        opacity: m.spent === 0 && !isCurrent ? 0.4 : 1,
-                      },
-                    ]}
-                  />
-                  <Text
-                    style={[
-                      styles.barLetter,
-                      isCurrent && styles.barLetterActive,
-                    ]}
-                  >
-                    {getBarLetter(m.month)}
-                  </Text>
-                </View>
+                <AnimatedBar
+                  key={m.month}
+                  height={barH}
+                  maxHeight={CHART_HEIGHT}
+                  color={isCurrent ? colors.primary : colors.surfaceElevated}
+                  label={getBarLetter(m.month)}
+                  valueLabel={m.spent > 0 ? fmtShort(m.spent) : ""}
+                  index={idx}
+                  isToday={isCurrent}
+                />
               );
             })}
           </View>
@@ -184,8 +176,8 @@ export default function HistoryScreen() {
                           ? Math.round((m.spent / yearTotal) * 100)
                           : 0;
                       const catColor = m.topCategory
-                        ? ((CATEGORY_COLORS as any)[m.topCategory] ?? "#e5e7eb")
-                        : "#e5e7eb";
+                        ? ((CATEGORY_COLORS as any)[m.topCategory] ?? colors.textMuted)
+                        : colors.textMuted;
                       const catDisplay = m.topCategory
                         ? (CAT_DISPLAY[m.topCategory] ?? m.topCategory)
                         : null;
@@ -206,7 +198,6 @@ export default function HistoryScreen() {
                             })
                           }
                         >
-                          {/* Month name + amount */}
                           <View style={styles.monthTopRow}>
                             <View style={styles.monthTitleGroup}>
                               <Text style={styles.monthName}>
@@ -227,7 +218,6 @@ export default function HistoryScreen() {
                             </Text>
                           </View>
 
-                          {/* Count + top category + net received */}
                           <View style={styles.monthSubRow}>
                             <Text style={styles.monthMeta} numberOfLines={1}>
                               {m.count > 0
@@ -241,7 +231,6 @@ export default function HistoryScreen() {
                             )}
                           </View>
 
-                          {/* Progress bar */}
                           {m.spent > 0 && (
                             <View style={styles.progressRow}>
                               <View style={styles.progressTrack}>
@@ -272,7 +261,7 @@ export default function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f5f5f5" },
+  container: { flex: 1, backgroundColor: colors.bg },
   center: {
     flex: 1,
     justifyContent: "center",
@@ -280,27 +269,25 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     gap: 10,
   },
-  scroll: { paddingBottom: 32 },
+  scroll: { paddingBottom: 12 },
 
   header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20 },
   title: {
-    fontSize: 34,
+    fontSize: 30,
     fontWeight: "800",
-    color: "#111827",
+    color: colors.text,
     letterSpacing: -0.5,
+    fontFamily: fonts.extrabold,
   },
-  subtitle: { fontSize: 13, color: "#9ca3af", fontWeight: "500", marginTop: 3 },
+  subtitle: { fontSize: 13, color: colors.textMuted, fontWeight: "500", marginTop: 3, fontFamily: fonts.medium },
 
   chartCard: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     marginHorizontal: 16,
-    borderRadius: 16,
+    borderRadius: radius.lg,
     padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   chartHeader: {
     flexDirection: "row",
@@ -311,24 +298,21 @@ const styles = StyleSheet.create({
   chartLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#9ca3af",
+    color: colors.textMuted,
     letterSpacing: 0.8,
+    fontFamily: fonts.bold,
   },
   chartAvg: {
     fontSize: 11,
-    color: "#9ca3af",
+    color: colors.textMuted,
     fontWeight: "500",
-    fontFamily: "GeistMono_400Regular",
+    fontFamily: fonts.monoRegular,
   },
   barsRow: {
     flexDirection: "row",
     alignItems: "flex-end",
-    height: CHART_HEIGHT + 20,
+    height: CHART_HEIGHT + 36,
   },
-  barCol: { flex: 1, alignItems: "center", justifyContent: "flex-end", gap: 6 },
-  bar: { width: "65%", borderRadius: 5 },
-  barLetter: { fontSize: 9, color: "#9ca3af", fontWeight: "500" },
-  barLetterActive: { color: "#1a1a1a", fontWeight: "700" },
 
   yearSection: { marginTop: 20, paddingHorizontal: 16 },
   yearHeader: {
@@ -338,26 +322,23 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     paddingHorizontal: 4,
   },
-  yearLabel: { fontSize: 13, color: "#9ca3af", fontWeight: "600" },
+  yearLabel: { fontSize: 13, color: colors.textMuted, fontWeight: "600", fontFamily: fonts.semibold },
   yearTotal: {
     fontSize: 13,
-    color: "#9ca3af",
+    color: colors.textMuted,
     fontWeight: "600",
-    fontFamily: "GeistMono_600SemiBold",
+    fontFamily: fonts.monoSemibold,
   },
 
   monthsCard: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
     overflow: "hidden",
   },
   monthRow: { padding: 16, gap: 5 },
-  monthRowBorder: { borderBottomWidth: 1, borderBottomColor: "#f3f4f6" },
+  monthRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.divider },
 
   monthTopRow: {
     flexDirection: "row",
@@ -365,19 +346,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   monthTitleGroup: { flexDirection: "row", alignItems: "center", gap: 8 },
-  monthName: { fontSize: 15, fontWeight: "700", color: "#111827" },
+  monthName: { fontSize: 15, fontWeight: "700", color: colors.text, fontFamily: fonts.bold },
   currentBadge: {
-    backgroundColor: "#dcfce7",
+    backgroundColor: colors.primarySoft,
     borderRadius: 6,
     paddingHorizontal: 7,
     paddingVertical: 2,
   },
-  currentBadgeText: { fontSize: 11, color: "#16a34a", fontWeight: "700" },
+  currentBadgeText: { fontSize: 11, color: colors.primaryLight, fontWeight: "700", fontFamily: fonts.bold },
   monthAmount: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#111827",
-    fontFamily: "GeistMono_700Bold",
+    color: colors.text,
+    fontFamily: fonts.monoBold,
   },
 
   monthSubRow: {
@@ -385,13 +366,13 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  monthMeta: { fontSize: 12, color: "#9ca3af", flex: 1 },
+  monthMeta: { fontSize: 12, color: colors.textMuted, flex: 1, fontFamily: fonts.regular },
   monthNet: {
     fontSize: 12,
-    color: "#16a34a",
+    color: colors.success,
     fontWeight: "600",
     marginLeft: 8,
-    fontFamily: "GeistMono_600SemiBold",
+    fontFamily: fonts.monoSemibold,
   },
 
   progressRow: {
@@ -403,26 +384,27 @@ const styles = StyleSheet.create({
   progressTrack: {
     flex: 1,
     height: 3,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: colors.surfaceElevated,
     borderRadius: 2,
     overflow: "hidden",
   },
   progressFill: { height: "100%", borderRadius: 2 },
   pctText: {
     fontSize: 11,
-    color: "#9ca3af",
+    color: colors.textMuted,
     fontWeight: "500",
     minWidth: 28,
     textAlign: "right",
+    fontFamily: fonts.medium,
   },
 
-  errorText: { color: "#9ca3af", fontSize: 13, textAlign: "center" },
+  errorText: { color: colors.textMuted, fontSize: 13, textAlign: "center" },
   retryBtn: {
     marginTop: 8,
     paddingHorizontal: 24,
     paddingVertical: 10,
-    backgroundColor: "#111827",
-    borderRadius: 20,
+    backgroundColor: colors.primary,
+    borderRadius: radius.pill,
   },
-  retryText: { color: "#fff", fontSize: 14, fontWeight: "600" },
+  retryText: { color: "#fff", fontSize: 14, fontWeight: "600", fontFamily: fonts.semibold },
 });

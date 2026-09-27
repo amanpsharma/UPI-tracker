@@ -14,13 +14,13 @@ export const CATEGORY_ICONS: Record<Category, string> = {
 };
 
 export const CATEGORY_COLORS: Record<Category, string> = {
-  Food: '#FF6B6B',
-  Transport: '#4ECDC4',
-  Shopping: '#45B7D1',
-  Bills: '#FFA07A',
-  Entertainment: '#98D8C8',
-  Health: '#7EC8A4',
-  Other: '#A0A0A0',
+  Food: '#F43F5E',
+  Transport: '#06B6D4',
+  Shopping: '#8B5CF6',
+  Bills: '#F59E0B',
+  Entertainment: '#EC4899',
+  Health: '#10B981',
+  Other: '#8F95A8',
 };
 
 export const CATEGORIES: Category[] = [

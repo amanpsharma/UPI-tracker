@@ -36,10 +36,10 @@ export default function SSOCallback() {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: "#fff",
+          backgroundColor: "#F8F9FC",
         }}
       >
-        <ActivityIndicator size="large" color="#6200ee" />
+        <ActivityIndicator size="large" color="#6366F1" />
       </View>
     );
   }
@@ -50,10 +50,10 @@ export default function SSOCallback() {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "#fff",
+        backgroundColor: "#F8F9FC",
       }}
     >
-      <ActivityIndicator size="large" color="#6200ee" />
+      <ActivityIndicator size="large" color="#6366F1" />
     </View>
   );
 }

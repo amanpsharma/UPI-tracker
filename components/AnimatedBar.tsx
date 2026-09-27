@@ -81,24 +81,24 @@ const styles = StyleSheet.create({
   },
   bar: {
     width: "60%",
-    borderRadius: 6,
+    borderRadius: 8,
     minHeight: 4,
   },
   valueLabel: {
     fontSize: 9,
-    color: "#9ca3af",
+    color: "#8F95A8",
     fontFamily: "Inter_400Regular",
     marginBottom: 3,
     textAlign: "center",
   },
   dayLabel: {
     fontSize: 10,
-    color: "#9ca3af",
+    color: "#8F95A8",
     fontWeight: "500",
     fontFamily: "Inter_500Medium",
   },
   dayLabelToday: {
-    color: "#1a1a1a",
+    color: "#6366F1",
     fontWeight: "700",
     fontFamily: "Inter_700Bold",
   },

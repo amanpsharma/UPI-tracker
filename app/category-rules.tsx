@@ -24,8 +24,7 @@ import {
   addRule,
   deleteRule,
 } from "@/services/categoryRules";
-
-const BG = "#f5f4f0";
+import { colors, fonts, radius } from "@/constants/theme";
 
 // ─── Rule row ────────────────────────────────────────────────────────────────
 function RuleRow({
@@ -51,7 +50,7 @@ function RuleRow({
       <MaterialCommunityIcons
         name="arrow-right"
         size={14}
-        color="#9ca3af"
+        color={colors.textMuted}
         style={styles.arrow}
       />
 
@@ -67,7 +66,7 @@ function RuleRow({
         onPress={onDelete}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        <MaterialCommunityIcons name="close" size={14} color="#9ca3af" />
+        <MaterialCommunityIcons name="close" size={14} color={colors.textMuted} />
       </TouchableOpacity>
     </View>
   );
@@ -140,7 +139,7 @@ function AddRuleSheet({
             value={keyword}
             onChangeText={(t) => setKeyword(t.toUpperCase())}
             placeholder="e.g. SWIGGY"
-            placeholderTextColor="#c4c4c4"
+            placeholderTextColor={colors.textPlaceholder}
             autoCapitalize="characters"
             returnKeyType="done"
           />
@@ -232,7 +231,7 @@ export default function CategoryRulesScreen() {
           onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/settings"))}
           activeOpacity={0.7}
         >
-          <MaterialCommunityIcons name="arrow-left" size={22} color="#111827" />
+          <MaterialCommunityIcons name="arrow-left" size={22} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.title}>Category rules</Text>
       </View>
@@ -252,7 +251,7 @@ export default function CategoryRulesScreen() {
             <MaterialCommunityIcons
               name="filter-variant"
               size={40}
-              color="#e5e7eb"
+              color={colors.textMuted}
             />
             <Text style={styles.emptyText}>No custom rules yet</Text>
             <Text style={styles.emptyHint}>
@@ -282,7 +281,7 @@ export default function CategoryRulesScreen() {
             onPress={() => setShowSheet(true)}
             activeOpacity={0.7}
           >
-            <MaterialCommunityIcons name="plus" size={16} color="#6b7280" />
+            <MaterialCommunityIcons name="plus" size={16} color={colors.textSecondary} />
             <Text style={styles.addBtnText}>Add rule</Text>
           </TouchableOpacity>
         }
@@ -299,7 +298,7 @@ export default function CategoryRulesScreen() {
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BG },
+  container: { flex: 1, backgroundColor: colors.bg },
 
   header: {
     flexDirection: "row",
@@ -312,43 +311,40 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#fff",
+    backgroundColor: colors.surfaceElevated,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.2,
     shadowRadius: 3,
     elevation: 2,
   },
   title: {
     fontSize: 20,
     fontWeight: "800",
-    color: "#111827",
-    fontFamily: "Inter_800ExtraBold",
+    color: colors.text,
+    fontFamily: fonts.extrabold,
   },
   subtitle: {
     fontSize: 13,
-    color: "#6b7280",
+    color: colors.textMuted,
     paddingHorizontal: 20,
     marginBottom: 16,
     lineHeight: 19,
-    fontFamily: "Inter_400Regular",
+    fontFamily: fonts.regular,
   },
 
   listContent: { paddingHorizontal: 16, paddingBottom: 32 },
 
   // Rules card
   rulesCard: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
     overflow: "hidden",
     marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
   },
   ruleRow: {
     flexDirection: "row",
@@ -359,11 +355,11 @@ const styles = StyleSheet.create({
   },
   ruleRowBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: "#f3f4f6",
+    borderBottomColor: colors.divider,
   },
 
   keywordChip: {
-    backgroundColor: "#f3f4f6",
+    backgroundColor: colors.surfaceElevated,
     borderRadius: 6,
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -371,7 +367,7 @@ const styles = StyleSheet.create({
   keywordText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#374151",
+    color: colors.textSecondary,
     fontFamily: "GeistMono_700Bold",
     letterSpacing: 0.4,
   },
@@ -395,14 +391,14 @@ const styles = StyleSheet.create({
   catBadgeText: {
     fontSize: 13,
     fontWeight: "600",
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: fonts.semibold,
   },
 
   deleteBtn: {
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: "#f9fafb",
+    backgroundColor: colors.surfaceElevated,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -414,17 +410,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
     borderWidth: 1.5,
-    borderColor: "#d1d5db",
+    borderColor: colors.border,
     borderStyle: "dashed",
-    borderRadius: 14,
+    borderRadius: radius.md,
     paddingVertical: 14,
     backgroundColor: "transparent",
   },
   addBtnText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#6b7280",
-    fontFamily: "Inter_600SemiBold",
+    color: colors.textSecondary,
+    fontFamily: fonts.semibold,
   },
 
   // Empty state
@@ -436,41 +432,43 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
-    color: "#9ca3af",
+    color: colors.textSecondary,
     fontWeight: "600",
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: fonts.semibold,
   },
   emptyHint: {
     fontSize: 12,
-    color: "#c4c4c4",
-    fontFamily: "Inter_400Regular",
+    color: colors.textMuted,
+    fontFamily: fonts.regular,
   },
 
   // Bottom sheet
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.35)",
+    backgroundColor: "rgba(0,0,0,0.6)",
   },
   sheetWrapper: {
     flex: 1,
     justifyContent: "flex-end",
   },
   sheet: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.bgSecondary,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 12,
+    borderTopWidth: 1,
+    borderColor: colors.border,
   },
   sheetHandle: {
     width: 40,
     height: 4,
-    backgroundColor: "#e5e7eb",
+    backgroundColor: colors.border,
     borderRadius: 2,
     alignSelf: "center",
     marginBottom: 20,
@@ -478,14 +476,14 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#111827",
-    fontFamily: "Inter_800ExtraBold",
+    color: colors.text,
+    fontFamily: fonts.extrabold,
     marginBottom: 4,
   },
   sheetSubtitle: {
     fontSize: 13,
-    color: "#9ca3af",
-    fontFamily: "Inter_400Regular",
+    color: colors.textSecondary,
+    fontFamily: fonts.regular,
     marginBottom: 20,
     lineHeight: 18,
   },
@@ -493,20 +491,20 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#9ca3af",
+    color: colors.textMuted,
     letterSpacing: 0.8,
-    fontFamily: "Inter_700Bold",
+    fontFamily: fonts.bold,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: "#f9fafb",
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 12,
+    borderColor: colors.border,
+    borderRadius: radius.md,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: "#111827",
+    color: colors.text,
     fontFamily: "GeistMono_700Bold",
     letterSpacing: 0.5,
   },
@@ -524,28 +522,28 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    backgroundColor: "#fff",
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   catChipText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#374151",
-    fontFamily: "Inter_600SemiBold",
+    color: colors.textSecondary,
+    fontFamily: fonts.semibold,
   },
 
   saveBtn: {
     marginTop: 24,
-    backgroundColor: "#111827",
-    borderRadius: 14,
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
     paddingVertical: 15,
     alignItems: "center",
   },
   saveBtnDisabled: { opacity: 0.4 },
   saveBtnText: {
-    color: "#fff",
+    color: colors.text,
     fontSize: 15,
     fontWeight: "700",
-    fontFamily: "Inter_700Bold",
+    fontFamily: fonts.bold,
   },
 });

@@ -21,8 +21,8 @@ import { CAT_DISPLAY } from "@/constants/ui";
 import CatIcon from "@/components/CatIcon";
 import { showToast } from "@/services/toast";
 import { Category } from "@/types";
+import { colors, fonts, radius } from "@/constants/theme";
 
-const BG = "#f5f4f0";
 const BANKS = ["HDFC", "ICICI", "SBI", "Axis", "Kotak"];
 
 export default function EditTransaction() {
@@ -142,22 +142,24 @@ export default function EditTransaction() {
           <TouchableOpacity
             onPress={() => router.back()}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={styles.backBtn}
           >
             <MaterialCommunityIcons
               name="arrow-left"
-              size={22}
-              color="#111827"
+              size={20}
+              color={colors.text}
             />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Edit transaction</Text>
           <TouchableOpacity
             onPress={handleDelete}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={styles.deleteBtn}
           >
             <MaterialCommunityIcons
               name="delete-outline"
-              size={22}
-              color="#9ca3af"
+              size={20}
+              color={colors.danger}
             />
           </TouchableOpacity>
         </View>
@@ -188,7 +190,7 @@ export default function EditTransaction() {
             <TouchableOpacity
               style={[
                 styles.toggleOption,
-                txType === "received" && styles.toggleActive,
+                txType === "received" && styles.toggleActiveIncome,
               ]}
               onPress={() => setTxType("received")}
             >
@@ -216,7 +218,7 @@ export default function EditTransaction() {
                 onChangeText={setAmount}
                 keyboardType="numeric"
                 placeholder="0"
-                placeholderTextColor="#d1d5db"
+                placeholderTextColor={colors.textDisabled}
               />
             </View>
           </View>
@@ -229,7 +231,7 @@ export default function EditTransaction() {
               value={recipient}
               onChangeText={setRecipient}
               placeholder="Enter merchant name"
-              placeholderTextColor="#c4c4c4"
+              placeholderTextColor={colors.textPlaceholder}
             />
           </View>
 
@@ -248,7 +250,7 @@ export default function EditTransaction() {
               <MaterialCommunityIcons
                 name={showCatPicker ? "chevron-up" : "chevron-down"}
                 size={18}
-                color="#9ca3af"
+                color={colors.textMuted}
               />
             </TouchableOpacity>
             {showCatPicker && (
@@ -284,7 +286,7 @@ export default function EditTransaction() {
                         <MaterialCommunityIcons
                           name="check"
                           size={16}
-                          color="#16a34a"
+                          color={colors.success}
                         />
                       )}
                     </TouchableOpacity>
@@ -294,17 +296,19 @@ export default function EditTransaction() {
             )}
           </View>
 
-          {/* Date + Time */}
+          {/* Date + Time (read-only) */}
           <View style={styles.rowFields}>
             <View style={styles.rowField}>
               <Text style={styles.fieldLabel}>DATE</Text>
               <View style={styles.selectRow}>
+                <MaterialCommunityIcons name="calendar-outline" size={16} color={colors.textSecondary} />
                 <Text style={styles.selectText}>{dateLabel}</Text>
               </View>
             </View>
             <View style={styles.rowField}>
               <Text style={styles.fieldLabel}>TIME</Text>
               <View style={styles.selectRow}>
+                <MaterialCommunityIcons name="clock-outline" size={16} color={colors.textSecondary} />
                 <Text style={styles.selectText}>{timeLabel}</Text>
               </View>
             </View>
@@ -318,7 +322,7 @@ export default function EditTransaction() {
               value={upiId}
               onChangeText={setUpiId}
               placeholder="merchant@bank"
-              placeholderTextColor="#c4c4c4"
+              placeholderTextColor={colors.textPlaceholder}
               autoCapitalize="none"
             />
           </View>
@@ -375,7 +379,7 @@ export default function EditTransaction() {
             activeOpacity={0.85}
           >
             <Text style={styles.primaryText}>
-              {saving ? "Saving…" : "Save changes"}
+              {saving ? "Saving..." : "Save changes"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -393,16 +397,16 @@ export default function EditTransaction() {
 }
 
 const BOX = {
-  backgroundColor: "#fff" as const,
-  borderRadius: 10,
+  backgroundColor: colors.surface,
+  borderRadius: radius.md,
   borderWidth: 1,
-  borderColor: "#e5e7eb" as const,
+  borderColor: colors.border,
   paddingHorizontal: 14,
   paddingVertical: 13,
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BG },
+  container: { flex: 1, backgroundColor: colors.bg },
 
   header: {
     flexDirection: "row",
@@ -411,57 +415,75 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
   },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  deleteBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: colors.dangerSoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   headerTitle: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#111827",
-    fontFamily: "Inter_700Bold",
+    color: colors.text,
+    fontFamily: fonts.bold,
   },
 
   scroll: { paddingHorizontal: 20, paddingBottom: 12, gap: 16 },
 
   toggle: {
     flexDirection: "row",
-    backgroundColor: "#e8e7e4",
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
     padding: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   toggleOption: {
     flex: 1,
     paddingVertical: 10,
     alignItems: "center",
-    borderRadius: 9,
+    borderRadius: radius.sm,
   },
   toggleActive: {
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
+    backgroundColor: colors.dangerSoft,
+  },
+  toggleActiveIncome: {
+    backgroundColor: colors.successSoft,
   },
   toggleText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#9ca3af",
-    fontFamily: "Inter_600SemiBold",
+    color: colors.textMuted,
+    fontFamily: fonts.semibold,
   },
-  toggleTextActive: { color: "#111827" },
+  toggleTextActive: { color: colors.text },
 
   amountSection: { alignItems: "center", paddingVertical: 4 },
   amountRow: { flexDirection: "row", alignItems: "center", marginTop: 8 },
   amountPrefix: {
     fontSize: 26,
-    color: "#9ca3af",
+    color: colors.textMuted,
     fontWeight: "500",
-    fontFamily: "Inter_500Medium",
+    fontFamily: fonts.medium,
     marginRight: 4,
   },
   amountInput: {
-    fontSize: 56,
+    fontSize: 52,
     fontWeight: "800",
-    color: "#111827",
-    fontFamily: "GeistMono_700Bold",
+    color: colors.text,
+    fontFamily: fonts.monoBold,
     padding: 0,
     minWidth: 60,
   },
@@ -470,16 +492,16 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#9ca3af",
+    color: colors.textMuted,
     letterSpacing: 0.7,
-    fontFamily: "Inter_700Bold",
+    fontFamily: fonts.bold,
   },
 
   textInput: {
     ...BOX,
     fontSize: 15,
-    color: "#111827",
-    fontFamily: "Inter_400Regular",
+    color: colors.text,
+    fontFamily: fonts.regular,
   },
 
   selectRow: {
@@ -492,17 +514,17 @@ const styles = StyleSheet.create({
   selectText: {
     flex: 1,
     fontSize: 15,
-    color: "#111827",
-    fontFamily: "Inter_400Regular",
+    color: colors.text,
+    fontFamily: fonts.regular,
   },
 
   catDropdown: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderTopWidth: 0,
-    borderColor: "#e5e7eb",
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
+    borderColor: colors.border,
+    borderBottomLeftRadius: radius.md,
+    borderBottomRightRadius: radius.md,
     overflow: "hidden",
   },
   catOption: {
@@ -512,15 +534,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 13,
   },
-  catOptionSelected: { backgroundColor: "#f0fdf4" },
-  catOptionBorder: { borderBottomWidth: 1, borderBottomColor: "#f3f4f6" },
+  catOptionSelected: { backgroundColor: colors.primarySoft },
+  catOptionBorder: { borderBottomWidth: 1, borderBottomColor: colors.divider },
   catOptionText: {
     flex: 1,
     fontSize: 15,
-    color: "#111827",
-    fontFamily: "Inter_400Regular",
+    color: colors.text,
+    fontFamily: fonts.regular,
   },
-  catOptionTextActive: { fontWeight: "600", fontFamily: "Inter_600SemiBold" },
+  catOptionTextActive: { fontWeight: "600", fontFamily: fonts.semibold },
 
   rowFields: { flexDirection: "row", gap: 12 },
   rowField: { flex: 1, gap: 6 },
@@ -529,15 +551,17 @@ const styles = StyleSheet.create({
   bankChip: {
     paddingHorizontal: 18,
     paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: "#e8e7e4",
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  bankChipActive: { backgroundColor: "#111827" },
+  bankChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   bankText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#374151",
-    fontFamily: "Inter_600SemiBold",
+    color: colors.textSecondary,
+    fontFamily: fonts.semibold,
   },
   bankTextActive: { color: "#fff" },
 
@@ -547,37 +571,37 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 16,
     gap: 12,
-    backgroundColor: BG,
+    backgroundColor: colors.bg,
     borderTopWidth: 1,
-    borderTopColor: "#e8e7e4",
+    borderTopColor: colors.border,
   },
   cancelBtn: {
     flex: 1,
     paddingVertical: 15,
-    borderRadius: 14,
+    borderRadius: radius.lg,
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: colors.border,
   },
   cancelText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#374151",
-    fontFamily: "Inter_600SemiBold",
+    color: colors.textSecondary,
+    fontFamily: fonts.semibold,
   },
   primaryBtn: {
     flex: 2,
     paddingVertical: 15,
-    borderRadius: 14,
+    borderRadius: radius.lg,
     alignItems: "center",
-    backgroundColor: "#111827",
+    backgroundColor: colors.primary,
   },
-  primaryBtnDisabled: { backgroundColor: "#d1d5db" },
+  primaryBtnDisabled: { backgroundColor: colors.textDisabled },
   primaryText: {
     fontSize: 15,
     fontWeight: "600",
     color: "#fff",
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: fonts.semibold,
   },
 });

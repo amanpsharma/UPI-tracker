@@ -13,6 +13,7 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import PressableScale from "./PressableScale";
+import { colors, radius } from "@/constants/theme";
 
 export default function FloatingAddButton() {
   const scale = useSharedValue(0);
@@ -45,7 +46,7 @@ export default function FloatingAddButton() {
         onPress={handlePress}
         scaleDown={0.88}
       >
-        <MaterialCommunityIcons name="plus" size={28} color="#fff" />
+        <MaterialCommunityIcons name="plus" size={26} color="#fff" />
       </PressableScale>
     </Animated.View>
   );
@@ -54,21 +55,21 @@ export default function FloatingAddButton() {
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    bottom: Platform.OS === "ios" ? 95 : 75,
+    bottom: Platform.OS === "ios" ? 90 : 70,
     right: 20,
     zIndex: 100,
   },
   button: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#111827",
+    width: 54,
+    height: 54,
+    borderRadius: radius.lg,
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 10,
   },
 });

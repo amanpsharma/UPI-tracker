@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { View, ViewStyle, StyleSheet, Dimensions } from "react-native";
+import { View, ViewStyle, StyleSheet } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -8,6 +8,7 @@ import Animated, {
   withSequence,
   Easing,
 } from "react-native-reanimated";
+import { colors } from "@/constants/theme";
 
 type Props = {
   width?: number | string;
@@ -51,11 +52,10 @@ export default function Skeleton({
   );
 }
 
-// Pre-composed skeleton for a single transaction row (avatar + 2 lines + amount)
 export function SkeletonTxRow() {
   return (
     <View style={styles.row}>
-      <Skeleton width={42} height={42} radius={21} />
+      <Skeleton width={42} height={42} radius={14} />
       <View style={{ flex: 1, gap: 6 }}>
         <Skeleton width="65%" height={13} />
         <Skeleton width="45%" height={11} />
@@ -65,13 +65,12 @@ export function SkeletonTxRow() {
   );
 }
 
-// Pre-composed skeleton for a card (used for stats/insights tiles)
 export function SkeletonCard({ height = 88 }: { height?: number }) {
   return <Skeleton height={height} radius={16} style={{ marginBottom: 12 }} />;
 }
 
 const styles = StyleSheet.create({
-  base: { backgroundColor: "#e5e7eb" },
+  base: { backgroundColor: colors.surfaceElevated },
   row: {
     flexDirection: "row",
     alignItems: "center",

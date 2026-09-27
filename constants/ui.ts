@@ -1,14 +1,14 @@
 // Shared UI constants used across multiple screens.
 
 export const AVATAR_PALETTE = [
-  { bg: '#fecaca', text: '#dc2626' },
-  { bg: '#fed7aa', text: '#ea580c' },
-  { bg: '#fef08a', text: '#ca8a04' },
-  { bg: '#bbf7d0', text: '#16a34a' },
-  { bg: '#bfdbfe', text: '#2563eb' },
-  { bg: '#ddd6fe', text: '#7c3aed' },
-  { bg: '#fbcfe8', text: '#db2777' },
-  { bg: '#cffafe', text: '#0891b2' },
+  { bg: '#EEF2FF', text: '#6366F1' },
+  { bg: '#FFF1F2', text: '#F43F5E' },
+  { bg: '#ECFEFF', text: '#06B6D4' },
+  { bg: '#ECFDF5', text: '#10B981' },
+  { bg: '#FFF7ED', text: '#F59E0B' },
+  { bg: '#F5F3FF', text: '#8B5CF6' },
+  { bg: '#FFF1F3', text: '#E11D48' },
+  { bg: '#F0F9FF', text: '#0EA5E9' },
 ] as const;
 
 export function avatarStyle(name: string) {

@@ -87,6 +87,31 @@ export function useUpdateTransaction() {
   });
 }
 
+export function useTopRecipients(month: string, limit = 10) {
+  const [year, mon] = month.split('-').map(Number);
+  const from = new Date(year, mon - 1, 1).toISOString();
+  const to = new Date(year, mon, 0, 23, 59, 59).toISOString();
+
+  return useQuery({
+    queryKey: ['topRecipients', month],
+    queryFn: async () => {
+      const txns = await api.getTransactions({ from, to, limit: 500 });
+      const sentTxns = txns.filter((tx) => (tx.type ?? 'sent') === 'sent');
+      const map: Record<string, { recipient: string; total: number; count: number }> = {};
+      for (const tx of sentTxns) {
+        const key = tx.recipient || tx.upiId || 'Unknown';
+        if (!map[key]) map[key] = { recipient: key, total: 0, count: 0 };
+        map[key].total += tx.amount;
+        map[key].count += 1;
+      }
+      return Object.values(map)
+        .sort((a, b) => b.total - a.total)
+        .slice(0, limit);
+    },
+    staleTime: 30_000,
+  });
+}
+
 export function useInvalidateAll() {
   const queryClient = useQueryClient();
   return () => queryClient.invalidateQueries();

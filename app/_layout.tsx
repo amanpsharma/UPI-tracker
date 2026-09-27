@@ -34,12 +34,23 @@ import {
   GeistMono_700Bold,
 } from "@expo-google-fonts/geist-mono";
 import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
+import { colors } from "@/constants/theme";
 
 SplashScreen.preventAutoHideAsync();
 
 const theme = {
   ...MD3LightTheme,
-  colors: { ...MD3LightTheme.colors, primary: "#22c55e", secondary: "#3b82f6" },
+  colors: {
+    ...MD3LightTheme.colors,
+    primary: colors.primary,
+    secondary: colors.secondary,
+    background: colors.bg,
+    surface: colors.surface,
+    surfaceVariant: colors.surfaceElevated,
+    onSurface: colors.text,
+    onBackground: colors.text,
+  },
   fonts: configureFonts({
     config: {
       displayLarge: { fontFamily: "Inter_800ExtraBold" },
@@ -63,9 +74,6 @@ const theme = {
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
-// Single source of truth for auth-based routing. Fires AFTER render commits so
-// Clerk's state is stable — eliminates the redirect race that caused the loop
-// between (auth) and (tabs) layouts.
 function AuthGuard() {
   const { isLoaded, isSignedIn, signOut } = useAuth();
   const segments = useSegments();
@@ -74,13 +82,11 @@ function AuthGuard() {
   useEffect(() => {
     if (!isLoaded) return;
 
-    // Small delay helps ensure Clerk has completely finished persisting the session securely on second devices
     const timeout = setTimeout(() => {
       const inAuthGroup = segments[0] === "(auth)";
       const inOnboarding = segments[0] === "onboarding";
       const inSsoCallback = segments[0] === "sso-callback";
 
-      // Allow onboarding & SSO callback to render regardless of auth state
       if (inOnboarding || inSsoCallback) return;
 
       if (isSignedIn && inAuthGroup) {
@@ -93,11 +99,9 @@ function AuthGuard() {
     return () => clearTimeout(timeout);
   }, [isLoaded, isSignedIn, segments, router]);
 
-  // When the server returns 401, the session is no longer valid — sign out and
-  // surface a toast. AuthGuard's redirect rule then sends the user to sign-in.
   useEffect(() => {
     return onUnauthorized(async () => {
-      if (!isSignedIn) return; // already signed out, nothing to do
+      if (!isSignedIn) return;
       try {
         await signOut();
       } catch {}
@@ -108,8 +112,6 @@ function AuthGuard() {
   return null;
 }
 
-// Wires up the token provider for API requests. Tries multiple Clerk APIs
-// for token retrieval as fallback.
 function TokenSetup() {
   const {
     getToken: getTokenFromAuth,
@@ -122,9 +124,6 @@ function TokenSetup() {
   setAuthState(isLoaded, !!isSignedIn);
 
   setTokenProvider(async () => {
-    // Always skipCache so we get a fresh ~60s-lifetime token. Otherwise the
-    // cached token might be near-expired by the time the server verifies it
-    // (Render cold starts can eat 10s+).
     try {
       const t = await getTokenFromAuth({ skipCache: true });
       if (t) return t;
@@ -182,7 +181,8 @@ export default function RootLayout() {
         <GestureHandlerRootView style={{ flex: 1 }}>
           <PaperProvider theme={theme}>
             <ErrorBoundary>
-            <Stack screenOptions={{ headerShown: false }}>
+            <StatusBar style="dark" />
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
               <Stack.Screen name="(auth)" />
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="sso-callback" />

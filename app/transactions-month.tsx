@@ -18,6 +18,7 @@ import { CATEGORY_COLORS } from "@/constants";
 import { avatarStyle } from "@/constants/ui";
 import { showToast } from "@/services/toast";
 import { Transaction } from "@/types";
+import { colors, fonts, radius } from "@/constants/theme";
 
 // Uses subDays to correctly handle DST boundaries instead of fixed ms arithmetic
 function getDayLabel(dateStr: string): string {
@@ -35,6 +36,8 @@ type Section = {
   receivedTotal: number;
   data: Transaction[];
 };
+
+const Separator = () => <View style={{ height: 6 }} />;
 
 export default function TransactionsMonthScreen() {
   const { month } = useLocalSearchParams<{ month: string }>();
@@ -138,7 +141,7 @@ export default function TransactionsMonthScreen() {
   );
   const receivedCount = transactions.length - sentCount;
 
-  const renderItem = ({ item }: { item: Transaction }) => {
+  const renderItem = useCallback(({ item }: { item: Transaction }) => {
     const av = avatarStyle(item.recipient || "U");
     const isSent = (item.type ?? "sent") === "sent";
     return (
@@ -177,20 +180,20 @@ export default function TransactionsMonthScreen() {
           </View>
         </View>
         <Text
-          style={[styles.txAmount, { color: isSent ? "#111827" : "#16a34a" }]}
+          style={[styles.txAmount, { color: isSent ? colors.text : colors.success }]}
         >
           {isSent ? "-" : "+"}₹{item.amount.toLocaleString("en-IN")}
         </Text>
       </TouchableOpacity>
     );
-  };
+  }, []);
 
   const renderSectionHeader = ({ section }: { section: Section }) => (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionDate}>{section.title}</Text>
       <View style={styles.sectionTotals}>
         {section.receivedTotal > 0 && (
-          <Text style={[styles.sectionTotal, { color: "#16a34a" }]}>
+          <Text style={[styles.sectionTotal, { color: colors.success }]}>
             +₹{section.receivedTotal.toLocaleString("en-IN")}
           </Text>
         )}
@@ -225,7 +228,7 @@ export default function TransactionsMonthScreen() {
               : router.replace("/(tabs)/history")
           }
         >
-          <MaterialCommunityIcons name="arrow-left" size={22} color="#111827" />
+          <MaterialCommunityIcons name="arrow-left" size={22} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{monthTitle}</Text>
@@ -237,11 +240,11 @@ export default function TransactionsMonthScreen() {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#1a1a1a" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : error ? (
         <View style={styles.center}>
-          <MaterialCommunityIcons name="wifi-off" size={40} color="#e5e7eb" />
+          <MaterialCommunityIcons name="wifi-off" size={40} color={colors.textMuted} />
           <Text style={styles.emptyText}>{error}</Text>
           <TouchableOpacity style={styles.retryBtn} onPress={load}>
             <Text style={styles.retryText}>Retry</Text>
@@ -252,7 +255,7 @@ export default function TransactionsMonthScreen() {
           <MaterialCommunityIcons
             name="receipt-text-outline"
             size={40}
-            color="#e5e7eb"
+            color={colors.textMuted}
           />
           <Text style={styles.emptyText}>No transactions in {monthTitle}</Text>
         </View>
@@ -265,14 +268,19 @@ export default function TransactionsMonthScreen() {
           contentContainerStyle={styles.list}
           stickySectionHeadersEnabled={false}
           showsVerticalScrollIndicator={false}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          initialNumToRender={15}
+          updateCellsBatchingPeriod={50}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#1a1a1a"
+              tintColor={colors.primary}
             />
           }
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          ItemSeparatorComponent={Separator}
         />
       )}
     </SafeAreaView>
@@ -282,7 +290,7 @@ export default function TransactionsMonthScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: colors.bg,
   },
   center: { flex: 1, justifyContent: "center", alignItems: "center", gap: 10 },
 
@@ -293,18 +301,18 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: colors.bg,
   },
   backBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#fff",
+    backgroundColor: colors.surfaceElevated,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.2,
     shadowRadius: 3,
     elevation: 2,
   },
@@ -312,13 +320,15 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: "800",
-    color: "#111827",
+    color: colors.text,
+    fontFamily: fonts.extrabold,
   },
   headerSub: {
     fontSize: 12,
-    color: "#9ca3af",
+    color: colors.textMuted,
     fontWeight: "500",
     marginTop: 1,
+    fontFamily: fonts.medium,
   },
 
   // List
@@ -332,19 +342,21 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     paddingHorizontal: 4,
   },
-  sectionDate: { fontSize: 12, fontWeight: "700", color: "#6b7280" },
+  sectionDate: { fontSize: 12, fontWeight: "700", color: colors.textMuted, fontFamily: fonts.bold },
   sectionTotals: { flexDirection: "row", gap: 6 },
-  sectionTotal: { fontSize: 12, color: "#9ca3af", fontWeight: "500" },
+  sectionTotal: { fontSize: 12, color: colors.textSecondary, fontWeight: "500", fontFamily: fonts.medium },
 
   // Transaction row
   txRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     paddingHorizontal: 14,
     paddingVertical: 13,
-    borderRadius: 14,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   separator: { height: 6 },
 
@@ -358,34 +370,34 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 16,
     fontWeight: "700",
-    fontFamily: "GeistMono_600SemiBold",
+    fontFamily: fonts.bold,
   },
   txInfo: { flex: 1 },
   txName: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#111827",
-    fontFamily: "GeistMono_600SemiBold",
+    color: colors.text,
+    fontFamily: fonts.semibold,
     marginBottom: 3,
   },
   txMeta: { flexDirection: "row", alignItems: "center", gap: 5 },
   catDot: { width: 7, height: 7, borderRadius: 2 },
   txMetaText: {
     fontSize: 12,
-    color: "#9ca3af",
-    fontFamily: "GeistMono_600SemiBold",
+    color: colors.textMuted,
+    fontFamily: fonts.regular,
   },
   txAmount: {
     fontSize: 14,
     fontWeight: "700",
-    fontFamily: "GeistMono_600SemiBold",
+    fontFamily: fonts.monoBold,
   },
 
   emptyText: {
     fontSize: 14,
-    color: "#9ca3af",
+    color: colors.textSecondary,
     fontWeight: "500",
-    fontFamily: "GeistMono_600SemiBold",
+    fontFamily: fonts.medium,
     textAlign: "center",
   },
 
@@ -393,12 +405,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingHorizontal: 24,
     paddingVertical: 10,
-    backgroundColor: "#111827",
+    backgroundColor: colors.primary,
     borderRadius: 20,
   },
   retryText: {
     color: "#fff",
     fontSize: 14,
     fontWeight: "600",
+    fontFamily: fonts.semibold,
   },
 });

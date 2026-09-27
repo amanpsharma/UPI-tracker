@@ -1,35 +1,46 @@
-// App-wide theme tokens. Keep this small and stable — components import these
-// instead of hardcoding hex values, so a future redesign or dark-mode toggle
-// only needs to swap one file.
+// App-wide theme tokens — fresh modern light design system
+// Clean whites, soft neutrals, vibrant accents
 
 export const colors = {
   // Surfaces
-  bg: '#f5f4f0',          // app background (cream)
-  surface: '#ffffff',     // cards
-  surfaceMuted: '#f3f4f6',
-  divider: '#f3f4f6',
-  border: '#e5e7eb',
-  borderSoft: '#ebebeb',
+  bg: '#F8F9FC',              // soft cool white
+  bgSecondary: '#FFFFFF',     // pure white
+  surface: '#FFFFFF',         // card background
+  surfaceElevated: '#F1F3F8', // slightly tinted
+  surfaceGlass: 'rgba(255,255,255,0.85)',
+  divider: '#EEF0F5',
+  border: '#E8EBF0',
+  borderSoft: '#F1F3F8',
 
   // Text
-  text: '#111827',
-  textSubtle: '#6b7280',
-  textMuted: '#9ca3af',
-  textPlaceholder: '#c4c4c4',
-  textDisabled: '#d1d5db',
+  text: '#1A1D26',
+  textSecondary: '#5E6478',
+  textMuted: '#8F95A8',
+  textPlaceholder: '#B5BAC9',
+  textDisabled: '#CDD1DC',
 
-  // Brand / status
-  primary: '#22c55e',
-  secondary: '#3b82f6',
-  danger: '#dc2626',
-  dangerSoft: '#fee2e2',
-  success: '#16a34a',
-  successSoft: '#dcfce7',
-  warning: '#ea580c',
-  info: '#2563eb',
+  // Brand / accent
+  primary: '#6366F1',         // indigo
+  primaryLight: '#818CF8',
+  primaryDark: '#4F46E5',
+  primarySoft: 'rgba(99,102,241,0.08)',
+  secondary: '#06B6D4',      // cyan
+  secondaryLight: '#22D3EE',
+  accent: '#F43F5E',         // rose
 
-  // Onboarding accent
-  accent: '#7c3aed',
+  // Status
+  danger: '#EF4444',
+  dangerSoft: 'rgba(239,68,68,0.08)',
+  success: '#10B981',
+  successSoft: 'rgba(16,185,129,0.08)',
+  warning: '#F59E0B',
+  warningSoft: 'rgba(245,158,11,0.08)',
+  info: '#3B82F6',
+
+  // Gradients
+  gradientPrimary: ['#6366F1', '#818CF8'],
+  gradientAccent: ['#F43F5E', '#FB7185'],
+  gradientSuccess: ['#10B981', '#34D399'],
 } as const;
 
 export const spacing = {
@@ -40,13 +51,15 @@ export const spacing = {
   xl: 20,
   xxl: 24,
   xxxl: 32,
+  xxxxl: 40,
 } as const;
 
 export const radius = {
-  sm: 6,
-  md: 10,
-  lg: 14,
-  xl: 18,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  xxl: 24,
   pill: 9999,
 } as const;
 
@@ -65,17 +78,24 @@ export const fonts = {
 // Reusable shadow presets
 export const shadow = {
   card: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowRadius: 8,
+    elevation: 2,
   },
   cardElevated: {
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  soft: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
     elevation: 2,
   },
 } as const;

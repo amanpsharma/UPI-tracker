@@ -11,12 +11,11 @@ import { CATEGORY_COLORS, CATEGORIES } from "@/constants";
 import { avatarStyle, CAT_DISPLAY, CAT_SHAPE } from "@/constants/ui";
 import { showToast } from "@/services/toast";
 import { Category } from "@/types";
-
-const BG = "#f5f4f0";
+import { colors, fonts, radius } from "@/constants/theme";
 
 // Local CatIcon — slightly larger than the shared one to match this screen's design.
 function CatIcon({ cat }: { cat: string }) {
-  const color = CATEGORY_COLORS[cat as Category] ?? "#9ca3af";
+  const color = CATEGORY_COLORS[cat as Category] ?? colors.textMuted;
   const shape = CAT_SHAPE[cat] ?? "circle";
   if (shape === "diamond") {
     return (
@@ -84,7 +83,7 @@ export default function CategorizeScreen() {
           onPress={() => router.back()}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <MaterialCommunityIcons name="close" size={20} color="#111827" />
+          <MaterialCommunityIcons name="close" size={20} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Categorize</Text>
         <View style={{ width: 36 }} />
@@ -110,7 +109,7 @@ export default function CategorizeScreen() {
             </Text>
           </View>
           <Text
-            style={[styles.txAmount, { color: isSent ? "#111827" : "#16a34a" }]}
+            style={[styles.txAmount, { color: isSent ? colors.text : colors.success }]}
           >
             {isSent ? "-" : "+"}₹
             {Number(params.amount || 0).toLocaleString("en-IN")}
@@ -152,7 +151,7 @@ export default function CategorizeScreen() {
                   <MaterialCommunityIcons
                     name="check"
                     size={18}
-                    color="#16a34a"
+                    color={colors.success}
                   />
                 )}
               </TouchableOpacity>
@@ -200,7 +199,7 @@ export default function CategorizeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BG },
+  container: { flex: 1, backgroundColor: colors.bg },
 
   header: {
     flexDirection: "row",
@@ -213,32 +212,29 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#ededeb",
+    backgroundColor: colors.surfaceElevated,
     justifyContent: "center",
     alignItems: "center",
   },
   headerTitle: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#111827",
-    fontFamily: "Inter_700Bold",
+    color: colors.text,
+    fontFamily: fonts.bold,
   },
 
   scroll: { paddingHorizontal: 20, paddingBottom: 24, gap: 14 },
 
   // Transaction card
   txCard: {
-    backgroundColor: "#fff",
-    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
     padding: 14,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   avatar: {
     width: 40,
@@ -247,16 +243,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  avatarText: { fontSize: 16, fontWeight: "700", fontFamily: "Inter_700Bold" },
+  avatarText: { fontSize: 16, fontWeight: "700", fontFamily: fonts.bold },
   txInfo: { flex: 1 },
   txName: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#111827",
-    fontFamily: "Inter_600SemiBold",
+    color: colors.text,
+    fontFamily: fonts.semibold,
     marginBottom: 2,
   },
-  txDate: { fontSize: 12, color: "#9ca3af", fontFamily: "Inter_400Regular" },
+  txDate: { fontSize: 12, color: colors.textMuted, fontFamily: fonts.regular },
   txAmount: {
     fontSize: 15,
     fontWeight: "700",
@@ -266,21 +262,18 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#9ca3af",
+    color: colors.textMuted,
     letterSpacing: 0.8,
-    fontFamily: "Inter_700Bold",
+    fontFamily: fonts.bold,
     paddingLeft: 2,
   },
 
   // Category card
   catCard: {
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
     overflow: "hidden",
   },
   catRow: {
@@ -290,16 +283,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 15,
   },
-  catRowSelected: { backgroundColor: "#f0fdf4" },
-  catRowBorder: { borderBottomWidth: 1, borderBottomColor: "#f3f4f6" },
+  catRowSelected: { backgroundColor: colors.successSoft },
+  catRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.divider },
   catLabel: {
     flex: 1,
     fontSize: 15,
     fontWeight: "500",
-    color: "#111827",
-    fontFamily: "Inter_500Medium",
+    color: colors.text,
+    fontFamily: fonts.medium,
   },
-  catLabelSelected: { fontWeight: "600", fontFamily: "Inter_600SemiBold" },
+  catLabelSelected: { fontWeight: "600", fontFamily: fonts.semibold },
 
   // Category icons
   iconBase: { width: 16, height: 16 },
@@ -319,7 +312,7 @@ const styles = StyleSheet.create({
   // Always apply row
   alwaysRow: {
     borderTopWidth: 1,
-    borderTopColor: "#f3f4f6",
+    borderTopColor: colors.divider,
     alignItems: "flex-start",
     paddingVertical: 14,
   },
@@ -328,37 +321,37 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: "#d1d5db",
+    borderColor: colors.border,
     justifyContent: "center",
     alignItems: "center",
     flexShrink: 0,
     marginTop: 1,
   },
-  checkboxActive: { backgroundColor: "#16a34a", borderColor: "#16a34a" },
+  checkboxActive: { backgroundColor: colors.success, borderColor: colors.success },
   alwaysText: {
     flex: 1,
     fontSize: 13,
-    color: "#6b7280",
+    color: colors.textSecondary,
     lineHeight: 20,
-    fontFamily: "Inter_400Regular",
+    fontFamily: fonts.regular,
   },
   alwaysBold: {
     fontWeight: "700",
-    color: "#111827",
-    fontFamily: "Inter_700Bold",
+    color: colors.text,
+    fontFamily: fonts.bold,
   },
 
   // Footer
   footer: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: BG,
+    backgroundColor: colors.bg,
     borderTopWidth: 1,
-    borderTopColor: "#e8e7e4",
+    borderTopColor: colors.border,
   },
   saveBtn: {
-    backgroundColor: "#111827",
-    borderRadius: 14,
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
     paddingVertical: 16,
     alignItems: "center",
   },
@@ -366,7 +359,7 @@ const styles = StyleSheet.create({
   saveBtnText: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#fff",
-    fontFamily: "Inter_700Bold",
+    color: colors.text,
+    fontFamily: fonts.bold,
   },
 });

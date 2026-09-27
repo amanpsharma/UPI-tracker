@@ -12,15 +12,14 @@ import * as WebBrowser from 'expo-web-browser';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { OAuthStrategy } from '@clerk/types';
+import { colors } from '@/constants/theme';
 
 WebBrowser.maybeCompleteAuthSession();
-
-const BG = '#f5f4f0';
 
 const SOCIAL = [
   { strategy: 'oauth_google' as OAuthStrategy, label: 'Continue with Google', icon: 'google', iconColor: '#4285F4' },
   { strategy: 'oauth_facebook' as OAuthStrategy, label: 'Continue with Facebook', icon: 'facebook', iconColor: '#1877F2' },
-  { strategy: 'oauth_x' as OAuthStrategy, label: 'Continue with X', icon: 'twitter', iconColor: '#000' },
+  { strategy: 'oauth_x' as OAuthStrategy, label: 'Continue with X', icon: 'twitter', iconColor: colors.text },
 ];
 
 export default function SignIn() {
@@ -144,9 +143,9 @@ export default function SignIn() {
         >
           {/* Logo */}
           <View style={styles.logoRow}>
-            <View style={{ width: 44, height: 44, borderRadius: 10, backgroundColor: '#111827', justifyContent: 'center', alignItems: 'center' }}>
-              <Text style={{ color: '#fff', fontSize: 19, fontWeight: '800' }}>₹</Text>
-              <View style={{ position: 'absolute', bottom: 4, right: 3, backgroundColor: '#22c55e', borderRadius: 4, width: 14, height: 14, justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ width: 44, height: 44, borderRadius: 10, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={{ color: colors.text, fontSize: 19, fontWeight: '800' }}>₹</Text>
+              <View style={{ position: 'absolute', bottom: 4, right: 3, backgroundColor: colors.success, borderRadius: 4, width: 14, height: 14, justifyContent: 'center', alignItems: 'center' }}>
                 <MaterialCommunityIcons name="trending-up" size={9} color="#fff" />
               </View>
             </View>
@@ -168,7 +167,7 @@ export default function SignIn() {
                 activeOpacity={0.7}
               >
                 {ssoLoading === strategy
-                  ? <ActivityIndicator size={16} color="#6b7280" />
+                  ? <ActivityIndicator size={16} color={colors.textMuted} />
                   : <MaterialCommunityIcons name={icon as any} size={18} color={iconColor} />
                 }
                 <Text style={styles.socialBtnText}>{label}</Text>
@@ -191,7 +190,7 @@ export default function SignIn() {
               value={email}
               onChangeText={setEmail}
               placeholder="you@example.com"
-              placeholderTextColor="#c4c4c4"
+              placeholderTextColor={colors.textMuted}
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
@@ -207,7 +206,7 @@ export default function SignIn() {
                 value={password}
                 onChangeText={setPassword}
                 placeholder="••••••••"
-                placeholderTextColor="#c4c4c4"
+                placeholderTextColor={colors.textMuted}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
               />
@@ -246,7 +245,7 @@ export default function SignIn() {
             activeOpacity={0.8}
           >
             {loading
-              ? <ActivityIndicator color="#6b7280" size="small" />
+              ? <ActivityIndicator color={colors.text} size="small" />
               : <Text style={styles.submitBtnText}>Sign in</Text>
             }
           </TouchableOpacity>
@@ -265,83 +264,83 @@ export default function SignIn() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BG },
+  container: { flex: 1, backgroundColor: colors.bg },
   scroll: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 32 },
 
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 32 },
   logoBox: {
-    width: 44, height: 44, borderRadius: 12, backgroundColor: '#111827',
+    width: 44, height: 44, borderRadius: 12, backgroundColor: colors.primary,
     justifyContent: 'center', alignItems: 'center',
   },
-  logoIcon: { color: '#fff', fontSize: 20, fontWeight: '800' },
-  appName: { fontSize: 17, fontWeight: '700', color: '#111827' },
+  logoIcon: { color: colors.text, fontSize: 20, fontWeight: '800' },
+  appName: { fontSize: 17, fontWeight: '700', color: colors.text },
 
-  title: { fontSize: 30, fontWeight: '800', color: '#111827', marginBottom: 8, letterSpacing: -0.5 },
-  subtitle: { fontSize: 14, color: '#9ca3af', lineHeight: 20, marginBottom: 28 },
+  title: { fontSize: 30, fontWeight: '800', color: colors.text, marginBottom: 8, letterSpacing: -0.5 },
+  subtitle: { fontSize: 14, color: colors.textSecondary, lineHeight: 20, marginBottom: 28 },
 
   socialGroup: { gap: 10, marginBottom: 24 },
   socialBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12,
-    backgroundColor: '#fff', paddingVertical: 13,
+    borderWidth: 1, borderColor: colors.border, borderRadius: 12,
+    backgroundColor: colors.surface, paddingVertical: 13,
   },
-  socialBtnText: { fontSize: 14, fontWeight: '600', color: '#111827' },
+  socialBtnText: { fontSize: 14, fontWeight: '600', color: colors.text },
 
   divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: '#e5e7eb' },
-  dividerText: { fontSize: 12, color: '#9ca3af', fontWeight: '600', letterSpacing: 0.5 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
+  dividerText: { fontSize: 12, color: colors.textMuted, fontWeight: '600', letterSpacing: 0.5 },
 
   tabToggle: {
-    flexDirection: 'row', backgroundColor: '#e9e8e4', borderRadius: 10,
+    flexDirection: 'row', backgroundColor: colors.surfaceElevated, borderRadius: 10,
     padding: 3, marginBottom: 22,
   },
   tabBtn: { flex: 1, paddingVertical: 9, borderRadius: 8, alignItems: 'center' },
   tabBtnActive: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08, shadowRadius: 2, elevation: 2,
   },
-  tabBtnText: { fontSize: 14, fontWeight: '600', color: '#9ca3af' },
-  tabBtnTextActive: { color: '#111827' },
+  tabBtnText: { fontSize: 14, fontWeight: '600', color: colors.textMuted },
+  tabBtnTextActive: { color: colors.text },
 
   fieldGroup: { marginBottom: 14 },
-  fieldLabel: { fontSize: 11, fontWeight: '700', color: '#9ca3af', letterSpacing: 0.8, marginBottom: 6 },
+  fieldLabel: { fontSize: 11, fontWeight: '700', color: colors.textMuted, letterSpacing: 0.8, marginBottom: 6 },
   input: {
-    backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e7eb',
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
     borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13,
-    fontSize: 15, color: '#111827',
+    fontSize: 15, color: colors.text,
   },
   inputRow: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e7eb',
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
     borderRadius: 12, paddingLeft: 14,
   },
-  inputFlex: { flex: 1, paddingVertical: 13, fontSize: 15, color: '#111827' },
+  inputFlex: { flex: 1, paddingVertical: 13, fontSize: 15, color: colors.text },
   showBtn: { paddingHorizontal: 14, paddingVertical: 13 },
-  showBtnText: { fontSize: 13, fontWeight: '600', color: '#6b7280' },
+  showBtnText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
 
   forgotRow: { alignItems: 'flex-end', marginBottom: 18 },
-  forgotText: { fontSize: 13, fontWeight: '600', color: '#374151' },
+  forgotText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
 
   agreeRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 20 },
   checkbox: {
-    width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: '#d1d5db',
+    width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: colors.border,
     justifyContent: 'center', alignItems: 'center', marginTop: 1, flexShrink: 0,
   },
-  checkboxChecked: { backgroundColor: '#16a34a', borderColor: '#16a34a' },
-  agreeText: { flex: 1, fontSize: 13, color: '#374151', lineHeight: 19 },
-  agreeLink: { fontWeight: '700', color: '#111827' },
+  checkboxChecked: { backgroundColor: colors.primary, borderColor: colors.primary },
+  agreeText: { flex: 1, fontSize: 13, color: colors.textSecondary, lineHeight: 19 },
+  agreeLink: { fontWeight: '700', color: colors.primaryLight },
 
-  errorText: { color: '#dc2626', fontSize: 13, marginBottom: 12 },
+  errorText: { color: colors.danger, fontSize: 13, marginBottom: 12 },
 
   submitBtn: {
-    borderWidth: 1.5, borderColor: '#d1d5db', borderRadius: 12,
-    paddingVertical: 15, alignItems: 'center', backgroundColor: '#fff', marginBottom: 20,
+    borderWidth: 0, borderRadius: 12,
+    paddingVertical: 15, alignItems: 'center', backgroundColor: colors.primary, marginBottom: 20,
   },
   submitBtnMuted: { opacity: 0.6 },
-  submitBtnText: { fontSize: 15, fontWeight: '700', color: '#111827' },
+  submitBtnText: { fontSize: 15, fontWeight: '700', color: colors.text },
 
   footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  footerText: { fontSize: 14, color: '#9ca3af' },
-  footerLink: { fontSize: 14, fontWeight: '700', color: '#111827' },
+  footerText: { fontSize: 14, color: colors.textSecondary },
+  footerLink: { fontSize: 14, fontWeight: '700', color: colors.primaryLight },
 });

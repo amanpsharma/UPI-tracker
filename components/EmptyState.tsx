@@ -1,15 +1,11 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-
-// Richer empty-state than a single icon: layered concentric circles behind the
-// icon give it visual weight, and an optional CTA button lets the screen prompt
-// the user toward the next action.
+import { colors, fonts, radius } from '@/constants/theme';
 
 type Props = {
   icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
   title: string;
   body?: string;
-  /** Tint colour for the icon and outer halo. Default = neutral grey. */
   tint?: string;
   cta?: { label: string; onPress: () => void };
 };
@@ -18,15 +14,14 @@ export default function EmptyState({
   icon,
   title,
   body,
-  tint = '#9ca3af',
+  tint = colors.textMuted,
   cta,
 }: Props) {
   return (
     <View style={styles.root}>
-      {/* Concentric halos */}
       <View style={[styles.halo3, { borderColor: `${tint}15` }]}>
         <View style={[styles.halo2, { borderColor: `${tint}25` }]}>
-          <View style={[styles.halo1, { backgroundColor: `${tint}1f` }]}>
+          <View style={[styles.halo1, { backgroundColor: `${tint}12` }]}>
             <MaterialCommunityIcons name={icon} size={32} color={tint} />
           </View>
         </View>
@@ -60,21 +55,21 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   title: {
-    fontSize: 16, fontWeight: '700', color: '#111827',
-    fontFamily: 'Inter_700Bold', textAlign: 'center', marginTop: 12,
+    fontSize: 16, fontWeight: '700', color: colors.text,
+    fontFamily: fonts.bold, textAlign: 'center', marginTop: 12,
   },
   body: {
-    fontSize: 13, color: '#9ca3af', textAlign: 'center',
-    fontFamily: 'Inter_400Regular', maxWidth: 260, lineHeight: 19,
+    fontSize: 13, color: colors.textSecondary, textAlign: 'center',
+    fontFamily: fonts.regular, maxWidth: 260, lineHeight: 19,
   },
   cta: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#111827',
+    backgroundColor: colors.primary,
     paddingHorizontal: 18, paddingVertical: 11,
-    borderRadius: 12, marginTop: 16,
+    borderRadius: radius.md, marginTop: 16,
   },
   ctaText: {
     color: '#fff', fontSize: 14, fontWeight: '600',
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: fonts.semibold,
   },
 });

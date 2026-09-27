@@ -1,11 +1,10 @@
 import { useAuth } from "@clerk/clerk-expo";
 import { Tabs } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AnimatedTabBar from "@/components/AnimatedTabBar";
 import FloatingAddButton from "@/components/FloatingAddButton";
+import { colors } from "@/constants/theme";
 
-// AuthGuard in app/_layout.tsx handles "signed-out user on tabs → /(auth)/sign-in" routing.
 export default function TabsLayout() {
   const { isLoaded } = useAuth();
 
@@ -16,16 +15,16 @@ export default function TabsLayout() {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: "#f5f4f0",
+          backgroundColor: colors.bg,
         }}
       >
-        <ActivityIndicator size="large" color="#111827" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <Tabs
         tabBar={(props) => <AnimatedTabBar {...props} />}
         screenOptions={{

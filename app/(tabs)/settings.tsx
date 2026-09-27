@@ -11,8 +11,7 @@ import { syncSmsToMongo } from '@/services/smsSyncAndroid';
 import { showToast } from '@/services/toast';
 import { avatarStyle } from '@/constants/ui';
 import { checkBudgetAlerts, requestNotificationPermission } from '@/services/budgetAlert';
-
-const BG = '#f5f4f0';
+import { colors, fonts, radius } from '@/constants/theme';
 
 type SettingItem = {
   icon: string;
@@ -26,7 +25,6 @@ export default function SettingsScreen() {
   const { user, isLoaded } = useUser();
   const { signOut } = useAuth();
 
-  // Force-refresh user profile every time this tab is opened
   useFocusEffect(useCallback(() => {
     user?.reload();
   }, [user]));
@@ -68,7 +66,6 @@ export default function SettingsScreen() {
         onPress: async () => {
           try {
             await signOut();
-            // (tabs)/_layout.tsx redirects to /(auth)/sign-in once isSignedIn=false
           } catch (e) {
             Alert.alert('Error', 'Failed to sign out. Please try again.');
           }
@@ -97,7 +94,6 @@ export default function SettingsScreen() {
       } else {
         showToast('No UPI messages found in inbox', 'info');
       }
-      // Re-check budget thresholds after new transactions come in
       checkBudgetAlerts().catch(() => {});
     } catch (err: any) {
       showToast(err?.message ?? 'SMS sync failed', 'error');
@@ -119,7 +115,7 @@ export default function SettingsScreen() {
   const settingItems: SettingItem[] = [
     {
       icon: 'message-text-outline',
-      label: syncing ? 'Syncing SMS…' : 'Sync SMS now',
+      label: syncing ? 'Syncing SMS...' : 'Sync SMS now',
       badge: Platform.OS === 'android' ? undefined : 'iOS unsupported',
       onPress: handleSyncSms,
     },
@@ -151,17 +147,15 @@ export default function SettingsScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        {/* Title */}
         <Text style={styles.title}>Settings</Text>
 
         {/* Profile card */}
         <View style={styles.profileCard}>
-          {/* Avatar */}
           <View style={styles.profileTop}>
             <View style={[styles.avatar, { backgroundColor: av.bg }]}>
               <Text style={[styles.avatarText, { color: av.text }]}>
@@ -170,13 +164,12 @@ export default function SettingsScreen() {
             </View>
             {isEmailVerified && (
               <View style={styles.verifiedBadge}>
-                <MaterialCommunityIcons name="check-circle" size={14} color="#16a34a" />
+                <MaterialCommunityIcons name="check-circle" size={14} color={colors.success} />
                 <Text style={styles.verifiedText}>Verified</Text>
               </View>
             )}
           </View>
 
-          {/* Name + email */}
           {isLoaded ? (
             <>
               <Text style={styles.profileName} numberOfLines={1}>{displayName}</Text>
@@ -191,10 +184,9 @@ export default function SettingsScreen() {
             </>
           )}
 
-          {/* Member since */}
           {memberSince && (
             <View style={styles.memberRow}>
-              <MaterialCommunityIcons name="calendar-outline" size={13} color="#9ca3af" />
+              <MaterialCommunityIcons name="calendar-outline" size={13} color={colors.textMuted} />
               <Text style={styles.memberText}>Member since {memberSince}</Text>
             </View>
           )}
@@ -212,7 +204,7 @@ export default function SettingsScreen() {
               <MaterialCommunityIcons
                 name={item.icon as any}
                 size={20}
-                color={item.comingSoon ? '#c4c4c4' : '#6b7280'}
+                color={item.comingSoon ? colors.textDisabled : colors.textSecondary}
                 style={styles.settingIcon}
               />
               <Text style={[styles.settingLabel, item.comingSoon && styles.settingLabelMuted]}>
@@ -226,7 +218,7 @@ export default function SettingsScreen() {
                     </Text>
                   </View>
                 ) : null}
-                <MaterialCommunityIcons name="chevron-right" size={18} color="#d1d5db" />
+                <MaterialCommunityIcons name="chevron-right" size={18} color={colors.textMuted} />
               </View>
             </TouchableOpacity>
           ))}
@@ -234,89 +226,85 @@ export default function SettingsScreen() {
 
         {/* Sign out */}
         <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut} activeOpacity={0.7}>
-          <MaterialCommunityIcons name="logout" size={18} color="#dc2626" />
+          <MaterialCommunityIcons name="logout" size={18} color={colors.danger} />
           <Text style={styles.signOutText}>Sign out</Text>
         </TouchableOpacity>
 
         {/* Footer */}
-        <Text style={styles.footer}>UPI Tracker · v1.0 · On-device</Text>
+        <Text style={styles.footer}>PayFlow · v2.0 · On-device</Text>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BG },
-  scroll: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 },
+  container: { flex: 1, backgroundColor: colors.bg },
+  scroll: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16 },
 
-  title: { fontSize: 34, fontWeight: '800', color: '#111827', letterSpacing: -0.5, marginBottom: 24 },
+  title: { fontSize: 30, fontWeight: '800', color: colors.text, letterSpacing: -0.5, marginBottom: 24, fontFamily: fonts.extrabold },
 
   // Profile card
   profileCard: {
-    backgroundColor: '#fff', borderRadius: 20, padding: 20,
+    backgroundColor: colors.surface, borderRadius: radius.xl, padding: 20,
     marginBottom: 16, alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    borderWidth: 1, borderColor: colors.border,
   },
   profileTop: { alignItems: 'center', marginBottom: 12 },
   avatar: {
-    width: 72, height: 72, borderRadius: 36,
+    width: 72, height: 72, borderRadius: 24,
     justifyContent: 'center', alignItems: 'center',
     marginBottom: 8,
   },
-  avatarText: { fontSize: 28, fontWeight: '800', fontFamily: 'Inter_800ExtraBold' },
+  avatarText: { fontSize: 28, fontWeight: '800', fontFamily: fonts.extrabold },
   verifiedBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: '#f0fdf4', borderRadius: 20,
+    backgroundColor: colors.successSoft, borderRadius: 20,
     paddingHorizontal: 10, paddingVertical: 4,
   },
-  verifiedText: { fontSize: 12, color: '#16a34a', fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
+  verifiedText: { fontSize: 12, color: colors.success, fontWeight: '600', fontFamily: fonts.semibold },
   profileName: {
-    fontSize: 20, fontWeight: '800', color: '#111827',
-    fontFamily: 'Inter_800ExtraBold', textAlign: 'center', marginBottom: 4,
+    fontSize: 20, fontWeight: '800', color: colors.text,
+    fontFamily: fonts.extrabold, textAlign: 'center', marginBottom: 4,
   },
   profileEmail: {
-    fontSize: 13, color: '#9ca3af', fontWeight: '500',
-    fontFamily: 'Inter_500Medium', textAlign: 'center', marginBottom: 10,
+    fontSize: 13, color: colors.textSecondary, fontWeight: '500',
+    fontFamily: fonts.medium, textAlign: 'center', marginBottom: 10,
   },
   memberRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  memberText: { fontSize: 12, color: '#9ca3af', fontFamily: 'Inter_400Regular' },
-  skeletonName: { height: 20, width: 140, backgroundColor: '#f3f4f6', borderRadius: 8, marginBottom: 8 },
-  skeletonEmail: { height: 13, width: 180, backgroundColor: '#f3f4f6', borderRadius: 6, marginBottom: 10 },
+  memberText: { fontSize: 12, color: colors.textMuted, fontFamily: fonts.regular },
+  skeletonName: { height: 20, width: 140, backgroundColor: colors.surfaceElevated, borderRadius: 8, marginBottom: 8 },
+  skeletonEmail: { height: 13, width: 180, backgroundColor: colors.surfaceElevated, borderRadius: 6, marginBottom: 10 },
 
   // Settings card
   settingsCard: {
-    backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+    backgroundColor: colors.surface, borderRadius: radius.lg, overflow: 'hidden',
+    borderWidth: 1, borderColor: colors.border,
     marginBottom: 16,
   },
   settingRow: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 16, paddingVertical: 15,
   },
-  settingRowBorder: { borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  settingRowBorder: { borderBottomWidth: 1, borderBottomColor: colors.divider },
   settingIcon: { marginRight: 14 },
-  settingLabel: { flex: 1, fontSize: 15, fontWeight: '500', color: '#111827' },
-  settingLabelMuted: { color: '#9ca3af' },
+  settingLabel: { flex: 1, fontSize: 15, fontWeight: '500', color: colors.text, fontFamily: fonts.medium },
+  settingLabelMuted: { color: colors.textMuted },
   settingRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   badge: {
-    backgroundColor: '#f3f4f6', borderRadius: 20,
+    backgroundColor: colors.surfaceElevated, borderRadius: 20,
     paddingHorizontal: 10, paddingVertical: 3,
   },
-  badgeSoft: { backgroundColor: '#fef3c7' },
-  badgeText: { fontSize: 12, color: '#6b7280', fontWeight: '500' },
-  badgeTextSoft: { color: '#a16207' },
+  badgeSoft: { backgroundColor: colors.warningSoft },
+  badgeText: { fontSize: 12, color: colors.textSecondary, fontWeight: '500', fontFamily: fonts.medium },
+  badgeTextSoft: { color: colors.warning },
 
   // Sign out
   signOutBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: '#fff', borderRadius: 16, paddingVertical: 15,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+    backgroundColor: colors.dangerSoft, borderRadius: radius.lg, paddingVertical: 15,
     marginBottom: 32,
   },
-  signOutText: { fontSize: 15, fontWeight: '600', color: '#dc2626' },
+  signOutText: { fontSize: 15, fontWeight: '600', color: colors.danger, fontFamily: fonts.semibold },
 
-  footer: { textAlign: 'center', fontSize: 12, color: '#c4c4c4', fontWeight: '500', fontFamily: 'GeistMono_400Regular' },
+  footer: { textAlign: 'center', fontSize: 12, color: colors.textMuted, fontWeight: '500', fontFamily: fonts.monoRegular },
 });

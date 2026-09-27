@@ -7,12 +7,12 @@ import {
   TouchableOpacity,
   ActivityIndicator as RNActivityIndicator,
   ScrollView,
+  Alert,
 } from "react-native";
 import { subDays, startOfMonth, format } from "date-fns";
 import { Text, Searchbar } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, router } from "expo-router";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { api } from "@/services/api";
 import { CATEGORIES, CATEGORY_COLORS } from "@/constants";
 import { avatarStyle } from "@/constants/ui";
@@ -20,10 +20,9 @@ import { fmtShort } from "@/utils/format";
 import { showToast } from "@/services/toast";
 import { Category, Transaction, TransactionType } from "@/types";
 import { groupTransactionsByDate, DayGroup } from "@/utils/groupByDate";
-import SwipeableRow from "@/components/SwipeableRow";
 import Skeleton, { SkeletonTxRow } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
-import FadeInView from "@/components/FadeInView";
+import { colors, fonts, radius } from "@/constants/theme";
 
 const PAGE_SIZE = 50;
 
@@ -84,12 +83,10 @@ export default function ActivityScreen() {
     }
   }, [filterCategory, filterType, dateRange, debouncedSearch]);
 
-  // Re-fetch whenever filters / search / date range change
   useEffect(() => {
     load();
   }, [load]);
 
-  // Also re-fetch when the tab regains focus (picks up transactions added elsewhere)
   useFocusEffect(
     useCallback(() => {
       load();
@@ -125,18 +122,25 @@ export default function ActivityScreen() {
     load();
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     await api.deleteTransaction(id);
     setTransactions((prev) => prev.filter((t) => t._id !== id));
     skipRef.current = Math.max(0, skipRef.current - 1);
-  };
+  }, []);
 
   const groups = useMemo<DayGroup[]>(
     () => groupTransactionsByDate(transactions),
     [transactions],
   );
 
-  const renderGroup = ({ item: group }: { item: DayGroup }) => (
+  const confirmDelete = useCallback((id: string, name: string) => {
+    Alert.alert("Delete", `Remove transaction to ${name}?`, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: () => handleDelete(id) },
+    ]);
+  }, []);
+
+  const renderGroup = useCallback(({ item: group }: { item: DayGroup }) => (
     <View style={styles.daySection}>
       <View style={styles.dayHeader}>
         <Text style={styles.dayLabel}>{group.label}</Text>
@@ -151,63 +155,60 @@ export default function ActivityScreen() {
           const isFirst = i === 0;
           const isLast = i === group.transactions.length - 1;
           return (
-            <SwipeableRow
+            <TouchableOpacity
               key={tx._id}
-              stripped
-              onDelete={() => handleDelete(tx._id)}
+              activeOpacity={0.7}
               onPress={() =>
                 router.push({
                   pathname: "/transaction-detail",
                   params: { id: tx._id },
                 })
               }
+              onLongPress={() => confirmDelete(tx._id, tx.recipient || "Unknown")}
+              delayLongPress={500}
+              style={[
+                styles.txRow,
+                isFirst && styles.txRowFirst,
+                isLast && styles.txRowLast,
+                !isLast && styles.txRowSep,
+              ]}
             >
-              <View
-                style={[
-                  styles.txRow,
-                  isFirst && styles.txRowFirst,
-                  isLast && styles.txRowLast,
-                  !isLast && styles.txRowSep,
-                ]}
-              >
-                <View style={[styles.avatar, { backgroundColor: av.bg }]}>
-                  <Text style={[styles.avatarText, { color: av.text }]}>
-                    {(tx.recipient || "U")[0].toUpperCase()}
-                  </Text>
-                </View>
-                <View style={styles.txInfo}>
-                  <Text style={styles.txName} numberOfLines={1}>
-                    {tx.recipient || "Unknown"}
-                  </Text>
-                  <View style={styles.txMeta}>
-                    <View
-                      style={[
-                        styles.catDot,
-                        { backgroundColor: CATEGORY_COLORS[tx.category] },
-                      ]}
-                    />
-                    <Text style={styles.txMetaText}>
-                      {tx.category} · {format(new Date(tx.paidAt), "HH:mm")}
-                    </Text>
-                  </View>
-                </View>
-                <Text
-                  style={[
-                    styles.txAmount,
-                    { color: isSent ? "#111827" : "#16a34a" },
-                  ]}
-                >
-                  {isSent ? "-" : "+"}₹{tx.amount.toLocaleString("en-IN")}
+              <View style={[styles.avatar, { backgroundColor: av.bg }]}>
+                <Text style={[styles.avatarText, { color: av.text }]}>
+                  {(tx.recipient || "U")[0].toUpperCase()}
                 </Text>
               </View>
-            </SwipeableRow>
+              <View style={styles.txInfo}>
+                <Text style={styles.txName} numberOfLines={1}>
+                  {tx.recipient || "Unknown"}
+                </Text>
+                <View style={styles.txMeta}>
+                  <View
+                    style={[
+                      styles.catDot,
+                      { backgroundColor: CATEGORY_COLORS[tx.category] },
+                    ]}
+                  />
+                  <Text style={styles.txMetaText}>
+                    {tx.category} · {format(new Date(tx.paidAt), "HH:mm")}
+                  </Text>
+                </View>
+              </View>
+              <Text
+                style={[
+                  styles.txAmount,
+                  { color: isSent ? colors.text : colors.success },
+                ]}
+              >
+                {isSent ? "-" : "+"}₹{tx.amount.toLocaleString("en-IN")}
+              </Text>
+            </TouchableOpacity>
           );
         })}
       </View>
     </View>
-  );
+  ), []);
 
-  // Total spent (sent only) across loaded matches — shown in the search summary
   const searchSpentTotal = useMemo(() => {
     if (!debouncedSearch.trim()) return 0;
     return transactions.reduce(
@@ -220,15 +221,14 @@ export default function ActivityScreen() {
     if (loadingMore) {
       return (
         <View style={styles.footer}>
-          <RNActivityIndicator size="small" color="#9ca3af" />
-          <Text style={styles.footerText}>Loading more…</Text>
+          <RNActivityIndicator size="small" color={colors.primary} />
+          <Text style={styles.footerText}>Loading more...</Text>
         </View>
       );
     }
 
     const hasSearch = debouncedSearch.trim().length > 0;
 
-    // Search summary — only shown when there's an active search and results
     if (hasSearch && !hasMore && transactions.length > 0) {
       return (
         <View style={styles.searchSummary}>
@@ -260,14 +260,16 @@ export default function ActivityScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       {/* ── Header ── */}
       <View style={styles.header}>
         <Text style={styles.title}>Activity</Text>
         {totalCount !== null && (
-          <Text style={styles.subtitle}>
-            {totalCount.toLocaleString("en-IN")} transactions
-          </Text>
+          <View style={styles.countBadge}>
+            <Text style={styles.countText}>
+              {totalCount.toLocaleString("en-IN")}
+            </Text>
+          </View>
         )}
       </View>
 
@@ -280,11 +282,11 @@ export default function ActivityScreen() {
           style={styles.searchBar}
           inputStyle={{
             fontSize: 14,
-            color: "#1f2937",
-            fontFamily: "Inter_400Regular",
+            color: colors.text,
+            fontFamily: fonts.regular,
           }}
-          placeholderTextColor="#9ca3af"
-          iconColor="#9ca3af"
+          placeholderTextColor={colors.textMuted}
+          iconColor={colors.textMuted}
           elevation={0}
         />
       </View>
@@ -296,7 +298,6 @@ export default function ActivityScreen() {
         style={styles.chipScrollOuter}
         contentContainerStyle={styles.chipScroll}
       >
-        {/* Type: All / Sent / Received */}
         {(["", "sent", "received"] as const).map((t) => {
           const active = filterType === t;
           const label = t === "" ? "All" : t === "sent" ? "Sent" : "Received";
@@ -313,7 +314,6 @@ export default function ActivityScreen() {
           );
         })}
 
-        {/* Date range */}
         {(["7d", "month", "90d"] as const).map((v) => {
           const label = v === "7d" ? "7D" : v === "month" ? "Month" : "90D";
           const active = dateRange === v;
@@ -330,7 +330,6 @@ export default function ActivityScreen() {
           );
         })}
 
-        {/* Category chips with colored dots */}
         {CATEGORIES.map((cat) => {
           const active = filterCategory === cat;
           return (
@@ -384,11 +383,16 @@ export default function ActivityScreen() {
           renderItem={renderGroup}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={8}
+          windowSize={5}
+          initialNumToRender={5}
+          updateCellsBatchingPeriod={50}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#111827"
+              tintColor={colors.primary}
             />
           }
           onEndReached={loadMore}
@@ -407,7 +411,7 @@ export default function ActivityScreen() {
               <EmptyState
                 icon="magnify-close"
                 title="No matches"
-                body={`Nothing matches “${search}”. Try a different search or clear the filters.`}
+                body={`Nothing matches "${search}". Try a different search or clear the filters.`}
               />
             ) : (
               <EmptyState
@@ -428,35 +432,45 @@ export default function ActivityScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fafafa" },
+  container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
 
-  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
-  title: {
-    fontSize: 34,
-    fontWeight: "800",
-    color: "#111827",
-    letterSpacing: -0.5,
-    fontFamily: "Inter_800ExtraBold",
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
+    gap: 12,
   },
-  subtitle: {
-    fontSize: 13,
-    color: "#9ca3af",
-    fontWeight: "500",
-    marginTop: 3,
-    fontFamily: "Inter_500Medium",
+  title: {
+    fontSize: 30,
+    fontWeight: "800",
+    color: colors.text,
+    letterSpacing: -0.5,
+    fontFamily: fonts.extrabold,
+  },
+  countBadge: {
+    backgroundColor: colors.primarySoft,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+  },
+  countText: {
+    fontSize: 12,
+    color: colors.primaryLight,
+    fontWeight: "600",
+    fontFamily: fonts.semibold,
   },
 
   searchRow: { paddingHorizontal: 16, marginBottom: 10 },
   searchBar: {
-    backgroundColor: "#fff",
-    borderRadius: 30,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
     height: 48,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: colors.border,
+    elevation: 0,
   },
 
   chipScrollOuter: { height: 52, flexShrink: 0 },
@@ -471,27 +485,27 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    backgroundColor: "#fff",
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
     marginRight: 8,
     flexShrink: 0,
   },
-  chipActive: { backgroundColor: "#111827", borderColor: "#111827" },
+  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#374151",
-    fontFamily: "Inter_600SemiBold",
+    color: colors.textSecondary,
+    fontFamily: fonts.semibold,
   },
   chipTextActive: { color: "#fff" },
-  chipDot: { width: 7, height: 7, borderRadius: 2 },
+  chipDot: { width: 7, height: 7, borderRadius: 3 },
 
   list: {
     paddingHorizontal: 16,
     paddingTop: 4,
-    paddingBottom: 32,
+    paddingBottom: 12,
     flexGrow: 1,
   },
 
@@ -506,24 +520,22 @@ const styles = StyleSheet.create({
   dayLabel: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#9ca3af",
+    color: colors.textMuted,
     letterSpacing: 0.5,
-    fontFamily: "Inter_700Bold",
+    fontFamily: fonts.bold,
   },
   dayTotal: {
     fontSize: 12,
-    color: "#9ca3af",
-    fontFamily: "GeistMono_400Regular",
+    color: colors.textMuted,
+    fontFamily: fonts.monoRegular,
   },
 
   dayCard: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 2,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: "hidden",
   },
 
   txRow: {
@@ -531,40 +543,40 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     paddingHorizontal: 14,
-    paddingVertical: 13,
-    backgroundColor: "#fff",
+    paddingVertical: 14,
+    backgroundColor: colors.surface,
   },
-  txRowFirst: { borderTopLeftRadius: 14, borderTopRightRadius: 14 },
-  txRowLast: { borderBottomLeftRadius: 14, borderBottomRightRadius: 14 },
-  txRowSep: { borderBottomWidth: 1, borderBottomColor: "#f3f4f6" },
+  txRowFirst: { borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg },
+  txRowLast: { borderBottomLeftRadius: radius.lg, borderBottomRightRadius: radius.lg },
+  txRowSep: { borderBottomWidth: 1, borderBottomColor: colors.divider },
 
   avatar: {
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
   },
-  avatarText: { fontSize: 16, fontWeight: "700", fontFamily: "Inter_700Bold" },
+  avatarText: { fontSize: 16, fontWeight: "700", fontFamily: fonts.bold },
   txInfo: { flex: 1 },
   txName: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#111827",
+    color: colors.text,
     marginBottom: 3,
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: fonts.semibold,
   },
   txMeta: { flexDirection: "row", alignItems: "center", gap: 5 },
-  catDot: { width: 7, height: 7, borderRadius: 2 },
+  catDot: { width: 7, height: 7, borderRadius: 3 },
   txMetaText: {
     fontSize: 12,
-    color: "#9ca3af",
-    fontFamily: "Inter_400Regular",
+    color: colors.textMuted,
+    fontFamily: fonts.regular,
   },
   txAmount: {
     fontSize: 14,
     fontWeight: "700",
-    fontFamily: "GeistMono_700Bold",
+    fontFamily: fonts.monoBold,
   },
 
   footer: {
@@ -576,23 +588,20 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 13,
-    color: "#9ca3af",
+    color: colors.textMuted,
     fontWeight: "500",
-    fontFamily: "Inter_500Medium",
+    fontFamily: fonts.medium,
   },
 
   searchSummary: {
-    backgroundColor: "#fff",
-    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
     paddingHorizontal: 16,
     paddingVertical: 14,
     marginTop: 4,
     marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   searchSummaryRow: {
     flexDirection: "row",
@@ -601,33 +610,33 @@ const styles = StyleSheet.create({
   },
   searchSummaryLabel: {
     fontSize: 13,
-    color: "#6b7280",
-    fontFamily: "Inter_500Medium",
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
   },
   searchSummaryValue: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#111827",
-    fontFamily: "Inter_700Bold",
+    color: colors.text,
+    fontFamily: fonts.bold,
   },
   searchSummarySpent: {
     fontSize: 16,
     fontWeight: "800",
-    color: "#dc2626",
-    fontFamily: "GeistMono_700Bold",
+    color: colors.danger,
+    fontFamily: fonts.monoBold,
   },
   searchSummaryDivider: {
     height: 1,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: colors.divider,
     marginVertical: 10,
   },
 
   emptyBox: { alignItems: "center", paddingTop: 60, gap: 10 },
   emptyText: {
-    color: "#9ca3af",
+    color: colors.textMuted,
     fontSize: 15,
     fontWeight: "500",
-    fontFamily: "Inter_500Medium",
+    fontFamily: fonts.medium,
   },
-  emptyHint: { color: "#d1d5db", fontSize: 13, fontFamily: "Inter_400Regular" },
+  emptyHint: { color: colors.textDisabled, fontSize: 13, fontFamily: fonts.regular },
 });

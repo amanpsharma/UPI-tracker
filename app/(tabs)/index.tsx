@@ -26,9 +26,9 @@ import { showToast } from "@/services/toast";
 import { useStats, useTrend, useRecentTransactions, useInvalidateAll } from "@/hooks/useTransactions";
 import Skeleton, { SkeletonTxRow } from "@/components/Skeleton";
 import EmptyState from "@/components/EmptyState";
-import FadeInView from "@/components/FadeInView";
 import AnimatedBar from "@/components/AnimatedBar";
-import PressableScale from "@/components/PressableScale";
+import Logo from "@/components/Logo";
+import { colors, fonts, radius } from "@/constants/theme";
 
 const BAR_AREA_HEIGHT = 80;
 
@@ -110,7 +110,6 @@ export default function Dashboard() {
       try {
         await syncSmsToMongo();
       } catch (err: any) {
-        // Log but don't block refresh
         console.warn("[SMS Sync]", err?.message);
       }
     }
@@ -180,12 +179,11 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={["top"]}>
         <ScrollView
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
         >
-          {/* Header skeleton */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <Skeleton width={120} height={13} radius={4} />
@@ -195,8 +193,6 @@ export default function Dashboard() {
               <Skeleton width={140} height={12} radius={4} />
             </View>
           </View>
-
-          {/* Chart card skeleton */}
           <View style={styles.chartCard}>
             <View style={styles.chartHeader}>
               <Skeleton width={80} height={11} radius={4} />
@@ -222,8 +218,6 @@ export default function Dashboard() {
               ))}
             </View>
           </View>
-
-          {/* Recent rows skeleton */}
           <View style={styles.recentSection}>
             <View style={styles.recentHeader}>
               <Skeleton width={60} height={11} radius={4} />
@@ -241,42 +235,44 @@ export default function Dashboard() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView
         ref={scrollRef}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#1a1a1a"
+            tintColor={colors.primary}
           />
         }
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
         {/* ── Header ── */}
-        <FadeInView delay={0} duration={600}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
+            <Logo size="sm" />
             <Text style={styles.spentLabel}>Spent in {monthName}</Text>
             <Text style={styles.amountText}>
               -₹{thisMonthTotal.toLocaleString("en-IN")}
             </Text>
             {pctChange !== null && (
               <View style={styles.compareRow}>
-                <MaterialCommunityIcons
-                  name={decreased ? "arrow-down" : "arrow-up"}
-                  size={13}
-                  color={decreased ? "#16a34a" : "#dc2626"}
-                />
-                <Text
-                  style={[
-                    styles.compareText,
-                    { color: decreased ? "#16a34a" : "#dc2626" },
-                  ]}
-                >
-                  {Math.abs(pctChange)}% vs last month
-                </Text>
+                <View style={[styles.compareBadge, { backgroundColor: decreased ? colors.successSoft : colors.dangerSoft }]}>
+                  <MaterialCommunityIcons
+                    name={decreased ? "arrow-down" : "arrow-up"}
+                    size={12}
+                    color={decreased ? colors.success : colors.danger}
+                  />
+                  <Text
+                    style={[
+                      styles.compareText,
+                      { color: decreased ? colors.success : colors.danger },
+                    ]}
+                  >
+                    {Math.abs(pctChange)}% vs last month
+                  </Text>
+                </View>
               </View>
             )}
           </View>
@@ -290,18 +286,16 @@ export default function Dashboard() {
               <Animated.View style={syncing ? spinStyle : undefined}>
                 <MaterialCommunityIcons
                   name="refresh"
-                  size={13}
-                  color="#555"
+                  size={14}
+                  color={colors.primaryLight}
                 />
               </Animated.View>
               <Text style={styles.scanBtnText}>Scan SMS</Text>
             </TouchableOpacity>
           )}
         </View>
-        </FadeInView>
 
         {/* ── 7-Day Bar Chart ── */}
-        <FadeInView delay={150} duration={500}>
         <View style={styles.chartCard}>
           <View style={styles.chartHeader}>
             <Text style={styles.chartLabel}>LAST 7 DAYS</Text>
@@ -309,7 +303,7 @@ export default function Dashboard() {
               <MaterialCommunityIcons
                 name="calendar-outline"
                 size={11}
-                color="#9ca3af"
+                color={colors.textMuted}
               />
               <Text style={styles.datePillText}>{dateRangeLabel}</Text>
             </View>
@@ -325,7 +319,7 @@ export default function Dashboard() {
                   key={i}
                   height={barH}
                   maxHeight={BAR_AREA_HEIGHT}
-                  color={bar.isToday ? "#1a1a1a" : "#e5e7eb"}
+                  color={bar.isToday ? colors.primary : colors.surfaceElevated}
                   label={bar.label}
                   valueLabel={bar.value > 0 ? fmtShort(bar.value) : ""}
                   index={i}
@@ -335,42 +329,38 @@ export default function Dashboard() {
             })}
           </View>
         </View>
-        </FadeInView>
 
         {/* ── Category Cards ── */}
         {stats && stats.byCategory.length > 0 && (
-          <FadeInView delay={300} from="right" duration={500}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoryScroll}
           >
-            {stats.byCategory.map((cat, idx) => (
-              <FadeInView key={cat._id} delay={350 + idx * 60} from="right" distance={30}>
-              <View style={styles.catCard}>
+            {stats.byCategory.map((cat) => (
+              <View key={cat._id} style={styles.catCard}>
                 <View style={styles.catCardTop}>
-                  <MaterialCommunityIcons
-                    name={CATEGORY_ICONS[cat._id] as any}
-                    size={13}
-                    color={CATEGORY_COLORS[cat._id]}
-                  />
+                  <View style={[styles.catIconBg, { backgroundColor: `${CATEGORY_COLORS[cat._id]}20` }]}>
+                    <MaterialCommunityIcons
+                      name={CATEGORY_ICONS[cat._id] as any}
+                      size={14}
+                      color={CATEGORY_COLORS[cat._id]}
+                    />
+                  </View>
                   <Text style={styles.catCardName}>{cat._id}</Text>
                 </View>
                 <Text style={styles.catCardAmount}>-{fmtShort(cat.total)}</Text>
               </View>
-              </FadeInView>
             ))}
           </ScrollView>
-          </FadeInView>
         )}
 
         {/* ── Recent Transactions ── */}
-        <FadeInView delay={400} duration={500}>
         <View style={styles.recentSection}>
           <View style={styles.recentHeader}>
             <Text style={styles.recentLabel}>RECENT</Text>
             <TouchableOpacity onPress={() => router.push("/(tabs)/activity")}>
-              <Text style={styles.seeAll}>See all →</Text>
+              <Text style={styles.seeAll}>See all</Text>
             </TouchableOpacity>
           </View>
 
@@ -406,8 +396,9 @@ export default function Dashboard() {
                     const isFirst = i === 0;
                     const isLast = i === group.transactions.length - 1;
                     return (
-                      <PressableScale
+                      <TouchableOpacity
                         key={tx._id}
+                        activeOpacity={0.7}
                         style={[
                           styles.txRow,
                           isFirst && styles.txRowFirst,
@@ -450,13 +441,13 @@ export default function Dashboard() {
                         <Text
                           style={[
                             styles.txAmount,
-                            { color: isSent ? "#111827" : "#16a34a" },
+                            { color: isSent ? colors.text : colors.success },
                           ]}
                         >
                           {isSent ? "-" : "+"}₹
                           {tx.amount.toLocaleString("en-IN")}
                         </Text>
-                      </PressableScale>
+                      </TouchableOpacity>
                     );
                   })}
                 </View>
@@ -464,16 +455,15 @@ export default function Dashboard() {
             ))
           )}
         </View>
-        </FadeInView>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fafafa" },
+  container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  scroll: { paddingBottom: 40 },
+  scroll: { paddingBottom: 16 },
 
   // Header
   header: {
@@ -481,66 +471,70 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 24,
-    backgroundColor: "#fafafa",
+    paddingTop: 12,
+    paddingBottom: 16,
   },
-  headerLeft: { flex: 1, gap: 2 },
+  headerLeft: { flex: 1, gap: 6 },
   spentLabel: {
     fontSize: 13,
-    color: "#9ca3af",
+    color: colors.textMuted,
     fontWeight: "500",
-    fontFamily: "Inter_500Medium",
+    fontFamily: fonts.medium,
+    marginTop: 16,
   },
   amountText: {
-    fontSize: 40,
+    fontSize: 38,
     fontWeight: "800",
-    color: "#111827",
+    color: colors.text,
     letterSpacing: -1,
-    lineHeight: 46,
-    fontFamily: "GeistMono_700Bold",
+    lineHeight: 44,
+    fontFamily: fonts.monoBold,
   },
   compareRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 3,
-    marginTop: 4,
+    marginTop: 8,
+  },
+  compareBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
   },
   compareText: {
     fontSize: 12,
     fontWeight: "600",
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: fonts.semibold,
   },
   scanBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
+    gap: 6,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 20,
-    paddingHorizontal: 12,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     marginTop: 4,
   },
   scanBtnText: {
     fontSize: 12,
-    color: "#555",
+    color: colors.primaryLight,
     fontWeight: "500",
-    fontFamily: "Inter_500Medium",
+    fontFamily: fonts.medium,
   },
 
   // Chart
   chartCard: {
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     marginHorizontal: 16,
-    borderRadius: 20,
+    borderRadius: radius.xl,
     padding: 18,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   chartHeader: {
     flexDirection: "row",
@@ -551,90 +545,67 @@ const styles = StyleSheet.create({
   chartLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#9ca3af",
+    color: colors.textMuted,
     letterSpacing: 0.8,
-    fontFamily: "Inter_700Bold",
+    fontFamily: fonts.bold,
   },
   datePill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 20,
+    borderColor: colors.border,
+    borderRadius: radius.pill,
     paddingHorizontal: 10,
     paddingVertical: 4,
+    backgroundColor: colors.surfaceGlass,
   },
   datePillText: {
     fontSize: 11,
-    color: "#6b7280",
+    color: colors.textSecondary,
     fontWeight: "500",
-    fontFamily: "Inter_500Medium",
+    fontFamily: fonts.medium,
   },
   barsRow: {
     flexDirection: "row",
     alignItems: "flex-end",
     height: BAR_AREA_HEIGHT + 40,
   },
-  barCol: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "flex-end",
-    gap: 6,
-  },
-  bar: {
-    width: "60%",
-    borderRadius: 6,
-  },
-  barValueLabel: {
-    fontSize: 9,
-    color: "#9ca3af",
-    fontFamily: "Inter_400Regular",
-    marginBottom: 3,
-    textAlign: "center",
-  },
-  barDayLabel: {
-    fontSize: 10,
-    color: "#9ca3af",
-    fontWeight: "500",
-    fontFamily: "Inter_500Medium",
-  },
-  barDayLabelToday: {
-    color: "#1a1a1a",
-    fontWeight: "700",
-    fontFamily: "Inter_700Bold",
-  },
 
   // Category
   categoryScroll: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     gap: 10,
   },
   catCard: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
     padding: 14,
-    minWidth: 120,
-    gap: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 3,
+    minWidth: 130,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  catCardTop: { flexDirection: "row", alignItems: "center", gap: 6 },
+  catCardTop: { flexDirection: "row", alignItems: "center", gap: 8 },
+  catIconBg: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   catCardName: {
     fontSize: 12,
-    color: "#6b7280",
+    color: colors.textSecondary,
     fontWeight: "500",
-    fontFamily: "Inter_500Medium",
+    fontFamily: fonts.medium,
   },
   catCardAmount: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: "800",
-    color: "#111827",
-    fontFamily: "GeistMono_700Bold",
+    color: colors.text,
+    fontFamily: fonts.monoBold,
   },
 
   // Recent
@@ -643,22 +614,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 12,
   },
   recentLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#9ca3af",
+    color: colors.textMuted,
     letterSpacing: 0.8,
-    fontFamily: "Inter_700Bold",
+    fontFamily: fonts.bold,
   },
   seeAll: {
     fontSize: 13,
-    color: "#6b7280",
-    fontWeight: "500",
-    fontFamily: "Inter_500Medium",
+    color: colors.primaryLight,
+    fontWeight: "600",
+    fontFamily: fonts.semibold,
   },
-  // Day-grouped sections (matches Activity screen)
   daySection: { marginBottom: 20 },
   dayHeader: {
     flexDirection: "row",
@@ -670,70 +640,68 @@ const styles = StyleSheet.create({
   dayLabel: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#9ca3af",
+    color: colors.textMuted,
     letterSpacing: 0.5,
-    fontFamily: "Inter_700Bold",
+    fontFamily: fonts.bold,
   },
   dayTotal: {
     fontSize: 12,
-    color: "#9ca3af",
-    fontFamily: "GeistMono_400Regular",
+    color: colors.textMuted,
+    fontFamily: fonts.monoRegular,
   },
   dayCard: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 2,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: "hidden",
   },
   txRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     paddingHorizontal: 14,
-    paddingVertical: 13,
-    backgroundColor: "#fff",
+    paddingVertical: 14,
+    backgroundColor: colors.surface,
   },
-  txRowFirst: { borderTopLeftRadius: 14, borderTopRightRadius: 14 },
-  txRowLast: { borderBottomLeftRadius: 14, borderBottomRightRadius: 14 },
-  txRowSep: { borderBottomWidth: 1, borderBottomColor: "#f3f4f6" },
+  txRowFirst: { borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg },
+  txRowLast: { borderBottomLeftRadius: radius.lg, borderBottomRightRadius: radius.lg },
+  txRowSep: { borderBottomWidth: 1, borderBottomColor: colors.divider },
   avatar: {
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
   },
-  avatarText: { fontSize: 16, fontWeight: "700", fontFamily: "Inter_700Bold" },
+  avatarText: { fontSize: 16, fontWeight: "700", fontFamily: fonts.bold },
   txInfo: { flex: 1 },
   txName: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#111827",
+    color: colors.text,
     marginBottom: 3,
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: fonts.semibold,
   },
   txMeta: { flexDirection: "row", alignItems: "center", gap: 5 },
-  catDot: { width: 7, height: 7, borderRadius: 2 },
+  catDot: { width: 7, height: 7, borderRadius: 3 },
   txMetaText: {
     fontSize: 12,
-    color: "#9ca3af",
-    fontFamily: "Inter_400Regular",
+    color: colors.textMuted,
+    fontFamily: fonts.regular,
   },
   txAmount: {
     fontSize: 14,
     fontWeight: "700",
-    fontFamily: "GeistMono_700Bold",
+    fontFamily: fonts.monoBold,
   },
 
   emptyBox: { alignItems: "center", paddingVertical: 28, gap: 8 },
   emptyText: {
     fontSize: 14,
-    color: "#9ca3af",
+    color: colors.textMuted,
     fontWeight: "500",
-    fontFamily: "Inter_500Medium",
+    fontFamily: fonts.medium,
   },
-  emptyHint: { fontSize: 12, color: "#d1d5db", fontFamily: "Inter_400Regular" },
+  emptyHint: { fontSize: 12, color: colors.textDisabled, fontFamily: fonts.regular },
 });
