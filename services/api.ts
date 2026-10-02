@@ -106,7 +106,7 @@ client.interceptors.response.use(
       return Promise.reject(new ApiError(serverMsg, status));
     }
     return Promise.reject(err);
-  }
+  },
 );
 
 // Retries transient network failures (no response) up to `retries` times with
@@ -138,7 +138,9 @@ export const api = {
     search?: string;
   }) =>
     withRetry(async () => {
-      const { data } = await trackSlowRequest(client.get<Transaction[]>('/transactions', { params }));
+      const { data } = await trackSlowRequest(
+        client.get<Transaction[]>('/transactions', { params }),
+      );
       return data;
     }),
 
@@ -158,7 +160,9 @@ export const api = {
 
   getTrend: (days = 30): Promise<{ date: string; total: number; count: number }[]> =>
     withRetry(async () => {
-      const { data } = await trackSlowRequest(client.get('/transactions/trend', { params: { days } }));
+      const { data } = await trackSlowRequest(
+        client.get('/transactions/trend', { params: { days } }),
+      );
       return data;
     }),
 
@@ -176,9 +180,13 @@ export const api = {
 
   updateTransaction: async (
     id: string,
-    patch: Partial<Pick<Transaction, 'category' | 'note' | 'amount' | 'recipient' | 'upiId' | 'bank' | 'type'>>,
+    patch: Partial<
+      Pick<Transaction, 'category' | 'note' | 'amount' | 'recipient' | 'upiId' | 'bank' | 'type'>
+    >,
   ): Promise<Transaction> => {
-    const { data } = await trackSlowRequest(client.patch<Transaction>(`/transactions/${id}`, patch));
+    const { data } = await trackSlowRequest(
+      client.patch<Transaction>(`/transactions/${id}`, patch),
+    );
     return data;
   },
 

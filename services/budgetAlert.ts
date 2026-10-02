@@ -28,7 +28,9 @@ export async function checkBudgetAlerts(): Promise<void> {
     const [stats, budgets] = await Promise.all([api.getStats(), getBudgets()]);
 
     const spendMap: Partial<Record<Category, number>> = {};
-    stats.byCategory.forEach((c) => { spendMap[c._id] = c.total; });
+    stats.byCategory.forEach((c) => {
+      spendMap[c._id] = c.total;
+    });
 
     for (const cat of Object.keys(budgets) as Category[]) {
       const budget = budgets[cat];

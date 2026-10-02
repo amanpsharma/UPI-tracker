@@ -1,8 +1,14 @@
 import { useState } from 'react';
 import {
-  View, StyleSheet, KeyboardAvoidingView, Platform,
-  TouchableOpacity, ScrollView, TextInput as RNTextInput,
-  ActivityIndicator, Alert,
+  View,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableOpacity,
+  ScrollView,
+  TextInput as RNTextInput,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,9 +23,24 @@ import { colors } from '@/constants/theme';
 WebBrowser.maybeCompleteAuthSession();
 
 const SOCIAL = [
-  { strategy: 'oauth_google' as OAuthStrategy, label: 'Continue with Google', icon: 'google', iconColor: '#4285F4' },
-  { strategy: 'oauth_facebook' as OAuthStrategy, label: 'Continue with Facebook', icon: 'facebook', iconColor: '#1877F2' },
-  { strategy: 'oauth_x' as OAuthStrategy, label: 'Continue with X', icon: 'twitter', iconColor: colors.text },
+  {
+    strategy: 'oauth_google' as OAuthStrategy,
+    label: 'Continue with Google',
+    icon: 'google',
+    iconColor: '#4285F4',
+  },
+  {
+    strategy: 'oauth_facebook' as OAuthStrategy,
+    label: 'Continue with Facebook',
+    icon: 'facebook',
+    iconColor: '#1877F2',
+  },
+  {
+    strategy: 'oauth_x' as OAuthStrategy,
+    label: 'Continue with X',
+    icon: 'twitter',
+    iconColor: colors.text,
+  },
 ];
 
 export default function SignIn() {
@@ -39,8 +60,14 @@ export default function SignIn() {
 
   const handleSignIn = async () => {
     if (!isLoaded) return;
-    if (!email.trim() || !password) { setError('Email and password are required.'); return; }
-    if (!agreed) { setError('Please agree to the Terms to continue.'); return; }
+    if (!email.trim() || !password) {
+      setError('Email and password are required.');
+      return;
+    }
+    if (!agreed) {
+      setError('Please agree to the Terms to continue.');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -52,7 +79,12 @@ export default function SignIn() {
         setError(`Sign-in incomplete (status: ${result.status}). Check your credentials.`);
       }
     } catch (err: any) {
-      setError(err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ?? err?.message ?? 'Sign-in failed.');
+      setError(
+        err?.errors?.[0]?.longMessage ??
+          err?.errors?.[0]?.message ??
+          err?.message ??
+          'Sign-in failed.',
+      );
     } finally {
       setLoading(false);
     }
@@ -85,8 +117,7 @@ export default function SignIn() {
       // 4. New user, but Clerk needs more info — auto-fill from Google profile
       if (result?.signUp?.status === 'missing_requirements') {
         const missing: string[] = result.signUp.missingFields ?? [];
-        const emailFromGoogle: string =
-          result.signUp.emailAddress ?? '';
+        const emailFromGoogle: string = result.signUp.emailAddress ?? '';
         const patch: Record<string, string> = {};
 
         if (missing.includes('username')) {
@@ -126,7 +157,10 @@ export default function SignIn() {
     } catch (err: any) {
       Alert.alert(
         'Login failed',
-        err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ?? err?.message ?? 'Social login failed.',
+        err?.errors?.[0]?.longMessage ??
+          err?.errors?.[0]?.message ??
+          err?.message ??
+          'Social login failed.',
       );
     } finally {
       setSsoLoading(null);
@@ -135,7 +169,10 @@ export default function SignIn() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <ScrollView
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
@@ -143,9 +180,30 @@ export default function SignIn() {
         >
           {/* Logo */}
           <View style={styles.logoRow}>
-            <View style={{ width: 44, height: 44, borderRadius: 10, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center' }}>
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 10,
+                backgroundColor: colors.primary,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
               <Text style={{ color: colors.text, fontSize: 19, fontWeight: '800' }}>₹</Text>
-              <View style={{ position: 'absolute', bottom: 4, right: 3, backgroundColor: colors.success, borderRadius: 4, width: 14, height: 14, justifyContent: 'center', alignItems: 'center' }}>
+              <View
+                style={{
+                  position: 'absolute',
+                  bottom: 4,
+                  right: 3,
+                  backgroundColor: colors.success,
+                  borderRadius: 4,
+                  width: 14,
+                  height: 14,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
                 <MaterialCommunityIcons name="trending-up" size={9} color="#fff" />
               </View>
             </View>
@@ -166,10 +224,11 @@ export default function SignIn() {
                 disabled={ssoLoading !== null}
                 activeOpacity={0.7}
               >
-                {ssoLoading === strategy
-                  ? <ActivityIndicator size={16} color={colors.textMuted} />
-                  : <MaterialCommunityIcons name={icon as any} size={18} color={iconColor} />
-                }
+                {ssoLoading === strategy ? (
+                  <ActivityIndicator size={16} color={colors.textMuted} />
+                ) : (
+                  <MaterialCommunityIcons name={icon as any} size={18} color={iconColor} />
+                )}
                 <Text style={styles.socialBtnText}>{label}</Text>
               </TouchableOpacity>
             ))}
@@ -210,7 +269,7 @@ export default function SignIn() {
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
               />
-              <TouchableOpacity onPress={() => setShowPassword(v => !v)} style={styles.showBtn}>
+              <TouchableOpacity onPress={() => setShowPassword((v) => !v)} style={styles.showBtn}>
                 <Text style={styles.showBtnText}>{showPassword ? 'Hide' : 'Show'}</Text>
               </TouchableOpacity>
             </View>
@@ -219,13 +278,22 @@ export default function SignIn() {
           {/* Forgot password */}
           <TouchableOpacity
             style={styles.forgotRow}
-            onPress={() => Alert.alert('Forgot password?', 'Please visit clerk dashboard to reset your password.')}
+            onPress={() =>
+              Alert.alert(
+                'Forgot password?',
+                'Please visit clerk dashboard to reset your password.',
+              )
+            }
           >
             <Text style={styles.forgotText}>Forgot password?</Text>
           </TouchableOpacity>
 
           {/* Terms checkbox */}
-          <TouchableOpacity style={styles.agreeRow} onPress={() => setAgreed(v => !v)} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={styles.agreeRow}
+            onPress={() => setAgreed((v) => !v)}
+            activeOpacity={0.8}
+          >
             <View style={[styles.checkbox, agreed && styles.checkboxChecked]}>
               {agreed && <MaterialCommunityIcons name="check" size={12} color="#fff" />}
             </View>
@@ -244,10 +312,11 @@ export default function SignIn() {
             disabled={loading}
             activeOpacity={0.8}
           >
-            {loading
-              ? <ActivityIndicator color={colors.text} size="small" />
-              : <Text style={styles.submitBtnText}>Sign in</Text>
-            }
+            {loading ? (
+              <ActivityIndicator color={colors.text} size="small" />
+            ) : (
+              <Text style={styles.submitBtnText}>Sign in</Text>
+            )}
           </TouchableOpacity>
 
           {/* Footer */}
@@ -269,20 +338,36 @@ const styles = StyleSheet.create({
 
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 32 },
   logoBox: {
-    width: 44, height: 44, borderRadius: 12, backgroundColor: colors.primary,
-    justifyContent: 'center', alignItems: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   logoIcon: { color: colors.text, fontSize: 20, fontWeight: '800' },
   appName: { fontSize: 17, fontWeight: '700', color: colors.text },
 
-  title: { fontSize: 30, fontWeight: '800', color: colors.text, marginBottom: 8, letterSpacing: -0.5 },
+  title: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: 8,
+    letterSpacing: -0.5,
+  },
   subtitle: { fontSize: 14, color: colors.textSecondary, lineHeight: 20, marginBottom: 28 },
 
   socialGroup: { gap: 10, marginBottom: 24 },
   socialBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    borderWidth: 1, borderColor: colors.border, borderRadius: 12,
-    backgroundColor: colors.surface, paddingVertical: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+    paddingVertical: 13,
   },
   socialBtnText: { fontSize: 14, fontWeight: '600', color: colors.text },
 
@@ -291,29 +376,50 @@ const styles = StyleSheet.create({
   dividerText: { fontSize: 12, color: colors.textMuted, fontWeight: '600', letterSpacing: 0.5 },
 
   tabToggle: {
-    flexDirection: 'row', backgroundColor: colors.surfaceElevated, borderRadius: 10,
-    padding: 3, marginBottom: 22,
+    flexDirection: 'row',
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: 10,
+    padding: 3,
+    marginBottom: 22,
   },
   tabBtn: { flex: 1, paddingVertical: 9, borderRadius: 8, alignItems: 'center' },
   tabBtnActive: {
     backgroundColor: colors.surface,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08, shadowRadius: 2, elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 2,
   },
   tabBtnText: { fontSize: 14, fontWeight: '600', color: colors.textMuted },
   tabBtnTextActive: { color: colors.text },
 
   fieldGroup: { marginBottom: 14 },
-  fieldLabel: { fontSize: 11, fontWeight: '700', color: colors.textMuted, letterSpacing: 0.8, marginBottom: 6 },
+  fieldLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+    letterSpacing: 0.8,
+    marginBottom: 6,
+  },
   input: {
-    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13,
-    fontSize: 15, color: colors.text,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    fontSize: 15,
+    color: colors.text,
   },
   inputRow: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 12, paddingLeft: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingLeft: 14,
   },
   inputFlex: { flex: 1, paddingVertical: 13, fontSize: 15, color: colors.text },
   showBtn: { paddingHorizontal: 14, paddingVertical: 13 },
@@ -324,8 +430,15 @@ const styles = StyleSheet.create({
 
   agreeRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 20 },
   checkbox: {
-    width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: colors.border,
-    justifyContent: 'center', alignItems: 'center', marginTop: 1, flexShrink: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 1,
+    flexShrink: 0,
   },
   checkboxChecked: { backgroundColor: colors.primary, borderColor: colors.primary },
   agreeText: { flex: 1, fontSize: 13, color: colors.textSecondary, lineHeight: 19 },
@@ -334,8 +447,12 @@ const styles = StyleSheet.create({
   errorText: { color: colors.danger, fontSize: 13, marginBottom: 12 },
 
   submitBtn: {
-    borderWidth: 0, borderRadius: 12,
-    paddingVertical: 15, alignItems: 'center', backgroundColor: colors.primary, marginBottom: 20,
+    borderWidth: 0,
+    borderRadius: 12,
+    paddingVertical: 15,
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    marginBottom: 20,
   },
   submitBtnMuted: { opacity: 0.6 },
   submitBtnText: { fontSize: 15, fontWeight: '700', color: colors.text },

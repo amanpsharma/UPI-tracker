@@ -1,25 +1,15 @@
-import { useEffect } from "react";
-import {
-  ClerkProvider,
-  ClerkLoaded,
-  useAuth,
-  useSession,
-  useClerk,
-} from "@clerk/clerk-expo";
-import { tokenCache } from "@/services/clerkTokenCache";
-import { setTokenProvider, setAuthState, onUnauthorized } from "@/services/api";
-import { showToast } from "@/services/toast";
-import ErrorBoundary from "@/components/ErrorBoundary";
-import ServerWakingBanner from "@/components/ServerWakingBanner";
-import Toast from "@/components/Toast";
-import QueryProvider from "@/providers/QueryProvider";
-import { Stack, useRouter, useSegments } from "expo-router";
-import {
-  PaperProvider,
-  MD3LightTheme,
-  configureFonts,
-} from "react-native-paper";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { useEffect } from 'react';
+import { ClerkProvider, ClerkLoaded, useAuth, useSession, useClerk } from '@clerk/clerk-expo';
+import { tokenCache } from '@/services/clerkTokenCache';
+import { setTokenProvider, setAuthState, onUnauthorized } from '@/services/api';
+import { showToast } from '@/services/toast';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import ServerWakingBanner from '@/components/ServerWakingBanner';
+import Toast from '@/components/Toast';
+import QueryProvider from '@/providers/QueryProvider';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { PaperProvider, MD3LightTheme, configureFonts } from 'react-native-paper';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   useFonts,
   Inter_400Regular,
@@ -27,15 +17,15 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
   Inter_800ExtraBold,
-} from "@expo-google-fonts/inter";
+} from '@expo-google-fonts/inter';
 import {
   GeistMono_400Regular,
   GeistMono_600SemiBold,
   GeistMono_700Bold,
-} from "@expo-google-fonts/geist-mono";
-import * as SplashScreen from "expo-splash-screen";
-import { StatusBar } from "expo-status-bar";
-import { colors } from "@/constants/theme";
+} from '@expo-google-fonts/geist-mono';
+import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
+import { colors } from '@/constants/theme';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -53,21 +43,21 @@ const theme = {
   },
   fonts: configureFonts({
     config: {
-      displayLarge: { fontFamily: "Inter_800ExtraBold" },
-      displayMedium: { fontFamily: "Inter_700Bold" },
-      displaySmall: { fontFamily: "Inter_700Bold" },
-      headlineLarge: { fontFamily: "Inter_800ExtraBold" },
-      headlineMedium: { fontFamily: "Inter_700Bold" },
-      headlineSmall: { fontFamily: "Inter_600SemiBold" },
-      titleLarge: { fontFamily: "Inter_700Bold" },
-      titleMedium: { fontFamily: "Inter_600SemiBold" },
-      titleSmall: { fontFamily: "Inter_600SemiBold" },
-      bodyLarge: { fontFamily: "Inter_400Regular" },
-      bodyMedium: { fontFamily: "Inter_400Regular" },
-      bodySmall: { fontFamily: "Inter_400Regular" },
-      labelLarge: { fontFamily: "Inter_600SemiBold" },
-      labelMedium: { fontFamily: "Inter_500Medium" },
-      labelSmall: { fontFamily: "Inter_500Medium" },
+      displayLarge: { fontFamily: 'Inter_800ExtraBold' },
+      displayMedium: { fontFamily: 'Inter_700Bold' },
+      displaySmall: { fontFamily: 'Inter_700Bold' },
+      headlineLarge: { fontFamily: 'Inter_800ExtraBold' },
+      headlineMedium: { fontFamily: 'Inter_700Bold' },
+      headlineSmall: { fontFamily: 'Inter_600SemiBold' },
+      titleLarge: { fontFamily: 'Inter_700Bold' },
+      titleMedium: { fontFamily: 'Inter_600SemiBold' },
+      titleSmall: { fontFamily: 'Inter_600SemiBold' },
+      bodyLarge: { fontFamily: 'Inter_400Regular' },
+      bodyMedium: { fontFamily: 'Inter_400Regular' },
+      bodySmall: { fontFamily: 'Inter_400Regular' },
+      labelLarge: { fontFamily: 'Inter_600SemiBold' },
+      labelMedium: { fontFamily: 'Inter_500Medium' },
+      labelSmall: { fontFamily: 'Inter_500Medium' },
     },
   }),
 };
@@ -83,16 +73,16 @@ function AuthGuard() {
     if (!isLoaded) return;
 
     const timeout = setTimeout(() => {
-      const inAuthGroup = segments[0] === "(auth)";
-      const inOnboarding = segments[0] === "onboarding";
-      const inSsoCallback = segments[0] === "sso-callback";
+      const inAuthGroup = segments[0] === '(auth)';
+      const inOnboarding = segments[0] === 'onboarding';
+      const inSsoCallback = segments[0] === 'sso-callback';
 
       if (inOnboarding || inSsoCallback) return;
 
       if (isSignedIn && inAuthGroup) {
-        router.replace("/(tabs)/");
+        router.replace('/(tabs)/');
       } else if (!isSignedIn && !inAuthGroup) {
-        router.replace("/(auth)/sign-in");
+        router.replace('/(auth)/sign-in');
       }
     }, 50);
 
@@ -113,11 +103,7 @@ function AuthGuard() {
 }
 
 function TokenSetup() {
-  const {
-    getToken: getTokenFromAuth,
-    isSignedIn,
-    isLoaded,
-  } = useAuth();
+  const { getToken: getTokenFromAuth, isSignedIn, isLoaded } = useAuth();
   const { session } = useSession();
   const clerk = useClerk();
 
@@ -176,47 +162,43 @@ export default function RootLayout() {
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <ClerkLoaded>
         <QueryProvider>
-        <TokenSetup />
-        <AuthGuard />
-        <GestureHandlerRootView style={{ flex: 1 }}>
-          <PaperProvider theme={theme}>
-            <ErrorBoundary>
-            <StatusBar style="dark" />
-            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="sso-callback" />
-              <Stack.Screen name="onboarding" />
-              <Stack.Screen
-                name="transaction-detail"
-                options={{ presentation: "modal", headerShown: false }}
-              />
-              <Stack.Screen
-                name="edit-transaction"
-                options={{ presentation: "modal", headerShown: false }}
-              />
-              <Stack.Screen
-                name="categorize"
-                options={{ presentation: "modal", headerShown: false }}
-              />
-              <Stack.Screen
-                name="transactions-month"
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen
-                name="category-rules"
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen
-                name="export"
-                options={{ headerShown: false }}
-              />
-            </Stack>
-            </ErrorBoundary>
-            <ServerWakingBanner />
-            <Toast />
-          </PaperProvider>
-        </GestureHandlerRootView>
+          <TokenSetup />
+          <AuthGuard />
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <PaperProvider theme={theme}>
+              <ErrorBoundary>
+                <StatusBar style="dark" />
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    contentStyle: { backgroundColor: colors.bg },
+                  }}
+                >
+                  <Stack.Screen name="(auth)" />
+                  <Stack.Screen name="(tabs)" />
+                  <Stack.Screen name="sso-callback" />
+                  <Stack.Screen name="onboarding" />
+                  <Stack.Screen
+                    name="transaction-detail"
+                    options={{ presentation: 'modal', headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="edit-transaction"
+                    options={{ presentation: 'modal', headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="categorize"
+                    options={{ presentation: 'modal', headerShown: false }}
+                  />
+                  <Stack.Screen name="transactions-month" options={{ headerShown: false }} />
+                  <Stack.Screen name="category-rules" options={{ headerShown: false }} />
+                  <Stack.Screen name="export" options={{ headerShown: false }} />
+                </Stack>
+              </ErrorBoundary>
+              <ServerWakingBanner />
+              <Toast />
+            </PaperProvider>
+          </GestureHandlerRootView>
         </QueryProvider>
       </ClerkLoaded>
     </ClerkProvider>

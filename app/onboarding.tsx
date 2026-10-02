@@ -1,5 +1,12 @@
 import { useRef, useState } from 'react';
-import { View, ScrollView, StyleSheet, Dimensions, TouchableOpacity, StatusBar } from 'react-native';
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  Dimensions,
+  TouchableOpacity,
+  StatusBar,
+} from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -15,18 +22,40 @@ export const ONBOARDING_KEY = '@upi_onboarding_done';
 function AppLogo({ size = 96 }: { size?: number }) {
   const radius = size * 0.22;
   return (
-    <View style={{
-      width: size, height: size, borderRadius: radius,
-      backgroundColor: colors.primary,
-      justifyContent: 'center', alignItems: 'center',
-    }}>
-      <Text style={{ color: colors.text, fontSize: size * 0.44, fontWeight: '800', fontFamily: fonts.extrabold, lineHeight: size * 0.52 }}>₹</Text>
-      <View style={{
-        position: 'absolute', bottom: size * 0.1, right: size * 0.08,
-        backgroundColor: colors.success, borderRadius: size * 0.1,
-        width: size * 0.3, height: size * 0.3,
-        justifyContent: 'center', alignItems: 'center',
-      }}>
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: radius,
+        backgroundColor: colors.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+    >
+      <Text
+        style={{
+          color: colors.text,
+          fontSize: size * 0.44,
+          fontWeight: '800',
+          fontFamily: fonts.extrabold,
+          lineHeight: size * 0.52,
+        }}
+      >
+        ₹
+      </Text>
+      <View
+        style={{
+          position: 'absolute',
+          bottom: size * 0.1,
+          right: size * 0.08,
+          backgroundColor: colors.success,
+          borderRadius: size * 0.1,
+          width: size * 0.3,
+          height: size * 0.3,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
         <MaterialCommunityIcons name="trending-up" size={size * 0.18} color="#fff" />
       </View>
     </View>
@@ -100,7 +129,9 @@ export default function Onboarding() {
                 <Text style={styles.brandTagline}>
                   Every rupee, <Text style={styles.brandAccent}>tracked.</Text>
                 </Text>
-                <Text style={styles.brandSub}>On-device SMS parsing. No cards, no accounts, no servers.</Text>
+                <Text style={styles.brandSub}>
+                  On-device SMS parsing. No cards, no accounts, no servers.
+                </Text>
               </View>
             );
           }
@@ -140,7 +171,7 @@ export default function Onboarding() {
 
         <TouchableOpacity
           style={[styles.nextBtn, isLast && styles.nextBtnFilled]}
-          onPress={() => isLast ? finish() : goTo(page + 1)}
+          onPress={() => (isLast ? finish() : goTo(page + 1))}
           activeOpacity={0.85}
         >
           <Text style={[styles.nextText, isLast && styles.nextTextFilled]}>
@@ -163,40 +194,67 @@ const styles = StyleSheet.create({
 
   // Brand slide
   brandSlide: {
-    width, flex: 1,
-    alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: 36, gap: 16,
+    width,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 36,
+    gap: 16,
   },
   brandName: {
-    fontSize: 28, fontWeight: '800', color: colors.text,
-    letterSpacing: -0.5, marginTop: 12, fontFamily: fonts.extrabold,
+    fontSize: 28,
+    fontWeight: '800',
+    color: colors.text,
+    letterSpacing: -0.5,
+    marginTop: 12,
+    fontFamily: fonts.extrabold,
   },
   brandTagline: {
-    fontSize: 20, fontWeight: '700', color: colors.text,
-    letterSpacing: -0.3, textAlign: 'center', fontFamily: fonts.bold,
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+    letterSpacing: -0.3,
+    textAlign: 'center',
+    fontFamily: fonts.bold,
   },
   brandAccent: { color: colors.success },
   brandSub: {
-    fontSize: 13, color: colors.textMuted,
-    textAlign: 'center', lineHeight: 20, marginTop: 4,
+    fontSize: 13,
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginTop: 4,
   },
 
   // Feature slides
   featureSlide: {
-    width, flex: 1,
-    alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: 36, gap: 20,
+    width,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 36,
+    gap: 20,
   },
   iconWrap: {
-    width: 130, height: 130, borderRadius: 65,
-    justifyContent: 'center', alignItems: 'center', marginBottom: 8,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   featureTitle: {
-    fontSize: 26, fontWeight: '800', color: colors.text,
-    textAlign: 'center', letterSpacing: -0.5, fontFamily: fonts.extrabold,
+    fontSize: 26,
+    fontWeight: '800',
+    color: colors.text,
+    textAlign: 'center',
+    letterSpacing: -0.5,
+    fontFamily: fonts.extrabold,
   },
   featureBody: {
-    fontSize: 15, color: colors.textSecondary, textAlign: 'center',
+    fontSize: 15,
+    color: colors.textSecondary,
+    textAlign: 'center',
     lineHeight: 24,
   },
 
@@ -209,17 +267,27 @@ const styles = StyleSheet.create({
 
   // Navigation
   nav: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 28, paddingBottom: 28,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 28,
+    paddingBottom: 28,
   },
   skip: { color: colors.textMuted, fontSize: 15, fontWeight: '600', fontFamily: fonts.semibold },
   skipDark: { color: colors.textMuted },
   nextBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: colors.surface, borderRadius: 30,
-    paddingHorizontal: 22, paddingVertical: 12,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.surface,
+    borderRadius: 30,
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   nextBtnFilled: { backgroundColor: colors.primary },
   nextText: { color: colors.text, fontWeight: '700', fontSize: 15, fontFamily: fonts.bold },

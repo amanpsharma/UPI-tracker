@@ -4,8 +4,16 @@ import { Transaction } from '@/types';
 export type ExportDateRange = '7d' | 'month' | 'all';
 
 export const CSV_COLUMNS = [
-  'date', 'time', 'merchant', 'amount', 'type',
-  'category', 'bank', 'vpa', 'ref', 'note',
+  'date',
+  'time',
+  'merchant',
+  'amount',
+  'type',
+  'category',
+  'bank',
+  'vpa',
+  'ref',
+  'note',
 ] as const;
 
 export const COLUMN_PREVIEW = CSV_COLUMNS.join(', ');

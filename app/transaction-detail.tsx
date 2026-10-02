@@ -1,30 +1,23 @@
-import { useCallback, useState } from "react";
-import {
-  View,
-  ScrollView,
-  StyleSheet,
-  Alert,
-  TouchableOpacity,
-  Platform,
-} from "react-native";
-import { Text, ActivityIndicator } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams, router, useFocusEffect } from "expo-router";
-import { format, isToday, isYesterday } from "date-fns";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
-import { api } from "@/services/api";
-import { CATEGORY_COLORS } from "@/constants";
-import { avatarStyle, CAT_DISPLAY } from "@/constants/ui";
-import { showToast } from "@/services/toast";
-import { Transaction } from "@/types";
-import { colors, fonts, radius } from "@/constants/theme";
+import { useCallback, useState } from 'react';
+import { View, ScrollView, StyleSheet, Alert, TouchableOpacity, Platform } from 'react-native';
+import { Text, ActivityIndicator } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
+import { format, isToday, isYesterday } from 'date-fns';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import { api } from '@/services/api';
+import { CATEGORY_COLORS } from '@/constants';
+import { avatarStyle, CAT_DISPLAY } from '@/constants/ui';
+import { showToast } from '@/services/toast';
+import { Transaction } from '@/types';
+import { colors, fonts, radius } from '@/constants/theme';
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
-  if (isToday(d)) return `Today · ${format(d, "HH:mm")}`;
-  if (isYesterday(d)) return `Yesterday · ${format(d, "HH:mm")}`;
-  return `${format(d, "dd MMM yyyy")} · ${format(d, "HH:mm")}`;
+  if (isToday(d)) return `Today · ${format(d, 'HH:mm')}`;
+  if (isYesterday(d)) return `Yesterday · ${format(d, 'HH:mm')}`;
+  return `${format(d, 'dd MMM yyyy')} · ${format(d, 'HH:mm')}`;
 }
 
 export default function TransactionDetail() {
@@ -48,16 +41,16 @@ export default function TransactionDetail() {
 
   const navigateToEdit = (txData: Transaction) => {
     router.push({
-      pathname: "/edit-transaction",
+      pathname: '/edit-transaction',
       params: {
         id: txData._id,
         amount: String(txData.amount),
         recipient: txData.recipient,
-        note: txData.note ?? "",
-        upiId: txData.upiId ?? "",
-        bank: txData.bank ?? "",
+        note: txData.note ?? '',
+        upiId: txData.upiId ?? '',
+        bank: txData.bank ?? '',
         category: txData.category,
-        type: txData.type ?? "sent",
+        type: txData.type ?? 'sent',
         paidAt: txData.paidAt,
       },
     });
@@ -67,24 +60,22 @@ export default function TransactionDetail() {
     if (!tx) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     Alert.alert(
-      "Delete Transaction",
-      `Remove ₹${tx.amount.toLocaleString("en-IN")} paid to ${tx.recipient}?`,
+      'Delete Transaction',
+      `Remove ₹${tx.amount.toLocaleString('en-IN')} paid to ${tx.recipient}?`,
       [
-        { text: "Cancel", style: "cancel" },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: "Delete",
-          style: "destructive",
+          text: 'Delete',
+          style: 'destructive',
           onPress: async () => {
             setDeleting(true);
             try {
               await api.deleteTransaction(id!);
-              Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success,
-              );
-              showToast("Transaction deleted", "success");
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              showToast('Transaction deleted', 'success');
               router.back();
             } catch (err: any) {
-              showToast(err?.message ?? "Failed to delete", "error");
+              showToast(err?.message ?? 'Failed to delete', 'error');
               setDeleting(false);
             }
           },
@@ -95,23 +86,23 @@ export default function TransactionDetail() {
 
   const handleMenu = () => {
     if (!tx) return;
-    Alert.alert("Options", undefined, [
-      { text: "Edit Transaction", onPress: () => navigateToEdit(tx) },
-      { text: "Delete", style: "destructive", onPress: handleDelete },
-      { text: "Cancel", style: "cancel" },
+    Alert.alert('Options', undefined, [
+      { text: 'Edit Transaction', onPress: () => navigateToEdit(tx) },
+      { text: 'Delete', style: 'destructive', onPress: handleDelete },
+      { text: 'Cancel', style: 'cancel' },
     ]);
   };
 
   const handleRecategorize = () => {
     if (!tx) return;
     router.push({
-      pathname: "/categorize",
+      pathname: '/categorize',
       params: {
         id: tx._id,
         amount: String(tx.amount),
         recipient: tx.recipient,
         paidAt: tx.paidAt,
-        type: tx.type ?? "sent",
+        type: tx.type ?? 'sent',
         category: tx.category,
       },
     });
@@ -119,9 +110,9 @@ export default function TransactionDetail() {
 
   const handleAddNote = () => {
     if (!tx) return;
-    if (Platform.OS === "ios") {
+    if (Platform.OS === 'ios') {
       Alert.prompt(
-        tx.note ? "Edit Note" : "Add Note",
+        tx.note ? 'Edit Note' : 'Add Note',
         undefined,
         async (text) => {
           if (text === null || text === undefined) return;
@@ -131,13 +122,13 @@ export default function TransactionDetail() {
             });
             setTx(updated);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            showToast("Note saved", "success");
+            showToast('Note saved', 'success');
           } catch (err: any) {
-            showToast(err?.message ?? "Failed to save note", "error");
+            showToast(err?.message ?? 'Failed to save note', 'error');
           }
         },
-        "plain-text",
-        tx.note ?? "",
+        'plain-text',
+        tx.note ?? '',
       );
     } else {
       navigateToEdit(tx);
@@ -154,9 +145,9 @@ export default function TransactionDetail() {
 
   if (!tx) return null;
 
-  const isSent = (tx.type ?? "sent") === "sent";
+  const isSent = (tx.type ?? 'sent') === 'sent';
   const catColor = CATEGORY_COLORS[tx.category] ?? colors.textMuted;
-  const av = avatarStyle(tx.recipient || "U");
+  const av = avatarStyle(tx.recipient || 'U');
 
   return (
     <SafeAreaView style={styles.container}>
@@ -174,30 +165,21 @@ export default function TransactionDetail() {
           onPress={handleMenu}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <MaterialCommunityIcons
-            name="dots-horizontal"
-            size={20}
-            color={colors.text}
-          />
+          <MaterialCommunityIcons name="dots-horizontal" size={20} color={colors.text} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Hero */}
         <View style={styles.hero}>
           <View style={[styles.avatar, { backgroundColor: av.bg }]}>
             <Text style={[styles.avatarText, { color: av.text }]}>
-              {(tx.recipient || "U")[0].toUpperCase()}
+              {(tx.recipient || 'U')[0].toUpperCase()}
             </Text>
           </View>
           <Text style={styles.recipientName}>{tx.recipient}</Text>
-          <Text
-            style={[styles.amount, { color: isSent ? colors.text : colors.success }]}
-          >
-            {isSent ? "-" : "+"}₹{tx.amount.toLocaleString("en-IN")}
+          <Text style={[styles.amount, { color: isSent ? colors.text : colors.success }]}>
+            {isSent ? '-' : '+'}₹{tx.amount.toLocaleString('en-IN')}
           </Text>
           <View style={[styles.catPill, { backgroundColor: `${catColor}1a` }]}>
             <View style={[styles.catDot, { backgroundColor: catColor }]} />
@@ -225,35 +207,27 @@ export default function TransactionDetail() {
           {tx.transactionId ? (
             <>
               <CardDivider />
-              <DetailRow
-                label="Reference"
-                value={tx.transactionId}
-                mono
-                truncate
-              />
+              <DetailRow label="Reference" value={tx.transactionId} mono truncate />
             </>
           ) : null}
           <CardDivider />
-          <DetailRow
-            label="Source"
-            value={tx.source === "sms" ? "Auto (SMS)" : "Manual"}
-          />
+          <DetailRow label="Source" value={tx.source === 'sms' ? 'Auto (SMS)' : 'Manual'} />
         </View>
 
         {/* Source SMS section */}
-        {tx.source === "sms" && (
+        {tx.source === 'sms' && (
           <View style={styles.smsSection}>
             <Text style={styles.smsSectionLabel}>SOURCE SMS</Text>
             <View style={styles.smsBox}>
               <Text style={styles.smsText}>
                 {[
                   tx.recipient && `Sent to ${tx.recipient}`,
-                  tx.amount && `Rs.${tx.amount.toLocaleString("en-IN")}`,
+                  tx.amount && `Rs.${tx.amount.toLocaleString('en-IN')}`,
                   tx.upiId && `via ${tx.upiId}`,
                   tx.transactionId && `UPI Ref ${tx.transactionId}`,
                 ]
                   .filter(Boolean)
-                  .join(" · ")}
+                  .join(' · ')}
               </Text>
             </View>
           </View>
@@ -268,14 +242,8 @@ export default function TransactionDetail() {
           >
             <Text style={styles.actionBtnText}>Recategorize</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={handleAddNote}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.actionBtnText}>
-              {tx.note ? "Edit note" : "Add note"}
-            </Text>
+          <TouchableOpacity style={styles.actionBtn} onPress={handleAddNote} activeOpacity={0.7}>
+            <Text style={styles.actionBtnText}>{tx.note ? 'Edit note' : 'Add note'}</Text>
           </TouchableOpacity>
         </View>
 
@@ -321,12 +289,12 @@ function CardDivider() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  center: { justifyContent: "center", alignItems: "center" },
+  center: { justifyContent: 'center', alignItems: 'center' },
 
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 4,
     paddingBottom: 8,
@@ -336,9 +304,9 @@ const styles = StyleSheet.create({
     height: 38,
     backgroundColor: colors.surfaceElevated,
     borderRadius: 19,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -348,7 +316,7 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 20, paddingBottom: 40 },
 
   hero: {
-    alignItems: "center",
+    alignItems: 'center',
     paddingTop: 12,
     paddingBottom: 28,
     gap: 8,
@@ -357,30 +325,30 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 4,
   },
   avatarText: {
     fontSize: 34,
-    fontWeight: "700",
+    fontWeight: '700',
     fontFamily: fonts.bold,
   },
   recipientName: {
     fontSize: 15,
     color: colors.textSecondary,
-    fontWeight: "500",
+    fontWeight: '500',
     fontFamily: fonts.medium,
   },
   amount: {
     fontSize: 44,
-    fontWeight: "800",
+    fontWeight: '800',
     letterSpacing: -1.5,
-    fontFamily: "GeistMono_700Bold",
+    fontFamily: 'GeistMono_700Bold',
   },
   catPill: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 7,
     paddingHorizontal: 14,
     paddingVertical: 7,
@@ -389,7 +357,7 @@ const styles = StyleSheet.create({
   catDot: { width: 8, height: 8, borderRadius: 4 },
   catPillText: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '600',
     fontFamily: fonts.semibold,
   },
 
@@ -399,12 +367,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     marginBottom: 20,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   row: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 18,
     paddingVertical: 16,
     gap: 20,
@@ -412,20 +380,20 @@ const styles = StyleSheet.create({
   rowLabel: {
     fontSize: 14,
     color: colors.textMuted,
-    fontWeight: "500",
+    fontWeight: '500',
     fontFamily: fonts.medium,
     flexShrink: 0,
   },
   rowValue: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '600',
     color: colors.text,
     fontFamily: fonts.semibold,
-    textAlign: "right",
+    textAlign: 'right',
     flex: 1,
   },
   rowValueMono: {
-    fontFamily: "GeistMono_400Regular",
+    fontFamily: 'GeistMono_400Regular',
     fontSize: 13,
     color: colors.textSecondary,
   },
@@ -434,7 +402,7 @@ const styles = StyleSheet.create({
   smsSection: { marginBottom: 20 },
   smsSectionLabel: {
     fontSize: 11,
-    fontWeight: "700",
+    fontWeight: '700',
     color: colors.textMuted,
     letterSpacing: 0.8,
     fontFamily: fonts.bold,
@@ -455,27 +423,27 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
   },
 
-  actions: { flexDirection: "row", gap: 12 },
+  actions: { flexDirection: 'row', gap: 12 },
   actionBtn: {
     flex: 1,
     backgroundColor: colors.surface,
     borderRadius: radius.md,
     paddingVertical: 16,
-    alignItems: "center",
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,
   },
   actionBtnText: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '600',
     color: colors.text,
     fontFamily: fonts.semibold,
   },
 
   deletingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
     marginTop: 20,
   },

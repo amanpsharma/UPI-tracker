@@ -3,7 +3,7 @@ import { Category } from '@/types';
 
 export type CategoryRule = {
   id: string;
-  keyword: string;   // stored uppercase, matched case-insensitively
+  keyword: string; // stored uppercase, matched case-insensitively
   category: Category;
   createdAt: number;
 };
@@ -24,10 +24,7 @@ export async function saveRules(rules: CategoryRule[]): Promise<void> {
   await AsyncStorage.setItem(KEY, JSON.stringify(rules));
 }
 
-export async function addRule(
-  keyword: string,
-  category: Category,
-): Promise<CategoryRule[]> {
+export async function addRule(keyword: string, category: Category): Promise<CategoryRule[]> {
   const rules = await getRules();
   const rule: CategoryRule = {
     id: `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,

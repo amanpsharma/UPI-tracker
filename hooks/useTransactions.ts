@@ -78,8 +78,13 @@ export function useAddTransaction() {
 export function useUpdateTransaction() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, patch }: { id: string; patch: Parameters<typeof api.updateTransaction>[1] }) =>
-      api.updateTransaction(id, patch),
+    mutationFn: ({
+      id,
+      patch,
+    }: {
+      id: string;
+      patch: Parameters<typeof api.updateTransaction>[1];
+    }) => api.updateTransaction(id, patch),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.transactions });
       queryClient.invalidateQueries({ queryKey: ['stats'] });

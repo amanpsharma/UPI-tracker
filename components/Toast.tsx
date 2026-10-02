@@ -42,13 +42,12 @@ export default function Toast() {
   return (
     <Animated.View
       pointerEvents="none"
-      style={[
-        styles.root,
-        { backgroundColor: v.bg, opacity, transform: [{ translateY }] },
-      ]}
+      style={[styles.root, { backgroundColor: v.bg, opacity, transform: [{ translateY }] }]}
     >
       <MaterialCommunityIcons name={v.icon} size={18} color="#fff" />
-      <Text style={styles.text} numberOfLines={2}>{msg.text}</Text>
+      <Text style={styles.text} numberOfLines={2}>
+        {msg.text}
+      </Text>
     </Animated.View>
   );
 }

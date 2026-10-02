@@ -3,9 +3,9 @@
 
 export const colors = {
   // Surfaces
-  bg: '#F8F9FC',              // soft cool white
-  bgSecondary: '#FFFFFF',     // pure white
-  surface: '#FFFFFF',         // card background
+  bg: '#F8F9FC', // soft cool white
+  bgSecondary: '#FFFFFF', // pure white
+  surface: '#FFFFFF', // card background
   surfaceElevated: '#F1F3F8', // slightly tinted
   surfaceGlass: 'rgba(255,255,255,0.85)',
   divider: '#EEF0F5',
@@ -20,13 +20,13 @@ export const colors = {
   textDisabled: '#CDD1DC',
 
   // Brand / accent
-  primary: '#6366F1',         // indigo
+  primary: '#6366F1', // indigo
   primaryLight: '#818CF8',
   primaryDark: '#4F46E5',
   primarySoft: 'rgba(99,102,241,0.08)',
-  secondary: '#06B6D4',      // cyan
+  secondary: '#06B6D4', // cyan
   secondaryLight: '#22D3EE',
-  accent: '#F43F5E',         // rose
+  accent: '#F43F5E', // rose
 
   // Status
   danger: '#EF4444',

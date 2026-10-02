@@ -22,21 +22,14 @@
         "backgroundColor": "#6366F1"
       },
       "package": "com.upitracker.app",
-      "permissions": [
-        "android.permission.READ_SMS",
-        "android.permission.RECEIVE_SMS"
-      ],
+      "permissions": ["android.permission.READ_SMS", "android.permission.RECEIVE_SMS"],
       "usesCleartextTraffic": true
     },
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
-    "plugins": [
-      "expo-router",
-      "expo-font",
-      "@react-native-community/datetimepicker"
-    ],
+    "plugins": ["expo-router", "expo-font", "@react-native-community/datetimepicker"],
     "scheme": "upi-tracker",
     "extra": {
       "router": {},

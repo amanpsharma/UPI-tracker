@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState } from 'react';
 import {
   View,
   ScrollView,
@@ -7,25 +7,20 @@ import {
   Share,
   Alert,
   ActivityIndicator,
-} from "react-native";
-import { Text } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
-import { subDays, startOfMonth } from "date-fns";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
-import * as WebBrowser from "expo-web-browser";
-import { api } from "@/services/api";
-import { showToast } from "@/services/toast";
-import {
-  generateCsv,
-  csvFilename,
-  COLUMN_PREVIEW,
-  ExportDateRange,
-} from "@/utils/exportCsv";
-import { colors, fonts, radius } from "@/constants/theme";
+} from 'react-native';
+import { Text } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { subDays, startOfMonth } from 'date-fns';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import * as WebBrowser from 'expo-web-browser';
+import { api } from '@/services/api';
+import { showToast } from '@/services/toast';
+import { generateCsv, csvFilename, COLUMN_PREVIEW, ExportDateRange } from '@/utils/exportCsv';
+import { colors, fonts, radius } from '@/constants/theme';
 
-type Destination = "csv" | "sheets";
+type Destination = 'csv' | 'sheets';
 
 // ─── Destination card ─────────────────────────────────────────────────────────
 function DestinationCard({
@@ -37,7 +32,7 @@ function DestinationCard({
   selected: boolean;
   onPress: () => void;
 }) {
-  const isSheets = type === "sheets";
+  const isSheets = type === 'sheets';
   return (
     <TouchableOpacity
       style={[styles.destCard, selected && styles.destCardSelected]}
@@ -52,19 +47,15 @@ function DestinationCard({
         ]}
       >
         <MaterialCommunityIcons
-          name={isSheets ? "google-spreadsheet" : "file-delimited-outline"}
+          name={isSheets ? 'google-spreadsheet' : 'file-delimited-outline'}
           size={22}
           color={selected ? (isSheets ? colors.success : colors.secondary) : colors.textMuted}
         />
       </View>
       <View style={styles.destText}>
-        <Text style={styles.destTitle}>
-          {isSheets ? "Google Sheets" : "Download CSV"}
-        </Text>
+        <Text style={styles.destTitle}>{isSheets ? 'Google Sheets' : 'Download CSV'}</Text>
         <Text style={styles.destSub}>
-          {isSheets
-            ? "Auto-sync new transactions"
-            : "One-time export to Files"}
+          {isSheets ? 'Auto-sync new transactions' : 'One-time export to Files'}
         </Text>
       </View>
       {selected && (
@@ -94,34 +85,30 @@ function RangeChip({
       onPress={onPress}
       activeOpacity={0.75}
     >
-      <Text style={[styles.rangeChipText, active && styles.rangeChipTextActive]}>
-        {label}
-      </Text>
+      <Text style={[styles.rangeChipText, active && styles.rangeChipTextActive]}>{label}</Text>
     </TouchableOpacity>
   );
 }
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export default function ExportScreen() {
-  const [destination, setDestination] = useState<Destination>("sheets");
-  const [dateRange, setDateRange] = useState<ExportDateRange>("month");
+  const [destination, setDestination] = useState<Destination>('sheets');
+  const [dateRange, setDateRange] = useState<ExportDateRange>('month');
   const [loading, setLoading] = useState(false);
 
   const handleExport = async () => {
-    if (destination === "sheets") {
+    if (destination === 'sheets') {
       // Google Sheets requires a configured OAuth client ID.
       // Guide the user to set it up; open Google Cloud Console.
       Alert.alert(
-        "Google Sheets",
+        'Google Sheets',
         "Connect your Google account to enable auto-sync. You'll need a Google Sheets API key configured in your .env file.\n\nOpen documentation?",
         [
-          { text: "Cancel", style: "cancel" },
+          { text: 'Cancel', style: 'cancel' },
           {
-            text: "Open Docs",
+            text: 'Open Docs',
             onPress: () =>
-              WebBrowser.openBrowserAsync(
-                "https://developers.google.com/sheets/api/quickstart",
-              ),
+              WebBrowser.openBrowserAsync('https://developers.google.com/sheets/api/quickstart'),
           },
         ],
       );
@@ -133,9 +120,9 @@ export default function ExportScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       const from =
-        dateRange === "7d"
+        dateRange === '7d'
           ? subDays(new Date(), 7).toISOString()
-          : dateRange === "month"
+          : dateRange === 'month'
             ? startOfMonth(new Date()).toISOString()
             : undefined;
 
@@ -145,7 +132,7 @@ export default function ExportScreen() {
       });
 
       if (transactions.length === 0) {
-        showToast("No transactions found for the selected range.", "info");
+        showToast('No transactions found for the selected range.', 'info');
         return;
       }
 
@@ -163,15 +150,14 @@ export default function ExportScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (err: any) {
       // User cancelled the share sheet — not an error
-      if (err?.message?.includes("cancel")) return;
-      showToast(err?.message ?? "Export failed. Please try again.", "error");
+      if (err?.message?.includes('cancel')) return;
+      showToast(err?.message ?? 'Export failed. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const ctaLabel =
-    destination === "sheets" ? "Connect & sync" : "Download CSV";
+  const ctaLabel = destination === 'sheets' ? 'Connect & sync' : 'Download CSV';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -179,11 +165,7 @@ export default function ExportScreen() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backBtn}
-          onPress={() =>
-            router.canGoBack()
-              ? router.back()
-              : router.replace("/(tabs)/settings")
-          }
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/settings'))}
           activeOpacity={0.7}
         >
           <MaterialCommunityIcons name="arrow-left" size={22} color={colors.text} />
@@ -201,14 +183,14 @@ export default function ExportScreen() {
         <View style={styles.destGroup}>
           <DestinationCard
             type="sheets"
-            selected={destination === "sheets"}
-            onPress={() => setDestination("sheets")}
+            selected={destination === 'sheets'}
+            onPress={() => setDestination('sheets')}
           />
           <View style={styles.destDivider} />
           <DestinationCard
             type="csv"
-            selected={destination === "csv"}
-            onPress={() => setDestination("csv")}
+            selected={destination === 'csv'}
+            onPress={() => setDestination('csv')}
           />
         </View>
 
@@ -217,9 +199,9 @@ export default function ExportScreen() {
         <View style={styles.rangeRow}>
           {(
             [
-              { key: "7d", label: "Last 7 days" },
-              { key: "month", label: "This month" },
-              { key: "all", label: "All time" },
+              { key: '7d', label: 'Last 7 days' },
+              { key: 'month', label: 'This month' },
+              { key: 'all', label: 'All time' },
             ] as { key: ExportDateRange; label: string }[]
           ).map(({ key, label }) => (
             <RangeChip
@@ -251,7 +233,7 @@ export default function ExportScreen() {
           )}
         </TouchableOpacity>
 
-        {destination === "sheets" && (
+        {destination === 'sheets' && (
           <Text style={styles.sheetsNote}>
             Requires a Google Sheets API key in your environment.
           </Text>
@@ -266,8 +248,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
 
   header: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -277,9 +259,9 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 19,
     backgroundColor: colors.surfaceElevated,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
@@ -287,7 +269,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: "800",
+    fontWeight: '800',
     color: colors.text,
     fontFamily: fonts.extrabold,
   },
@@ -299,7 +281,7 @@ const styles = StyleSheet.create({
 
   sectionLabel: {
     fontSize: 10,
-    fontWeight: "700",
+    fontWeight: '700',
     color: colors.textMuted,
     letterSpacing: 0.9,
     fontFamily: fonts.bold,
@@ -312,11 +294,11 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   destCard: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 14,
     paddingHorizontal: 16,
     paddingVertical: 16,
@@ -329,15 +311,15 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: radius.md,
     backgroundColor: colors.surfaceElevated,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   destIconSelectedSheets: { backgroundColor: colors.successSoft },
   destIconSelectedCsv: { backgroundColor: colors.primarySoft },
   destText: { flex: 1 },
   destTitle: {
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: '700',
     color: colors.text,
     fontFamily: fonts.bold,
     marginBottom: 2,
@@ -351,7 +333,7 @@ const styles = StyleSheet.create({
 
   // Date range chips
   rangeRow: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 8,
   },
   rangeChip: {
@@ -359,7 +341,7 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     borderRadius: radius.md,
     backgroundColor: colors.surface,
-    alignItems: "center",
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -369,7 +351,7 @@ const styles = StyleSheet.create({
   },
   rangeChipText: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '600',
     color: colors.textSecondary,
     fontFamily: fonts.semibold,
   },
@@ -389,7 +371,7 @@ const styles = StyleSheet.create({
   columnsText: {
     fontSize: 13,
     color: colors.textSecondary,
-    fontFamily: "GeistMono_400Regular",
+    fontFamily: 'GeistMono_400Regular',
     lineHeight: 20,
   },
 
@@ -399,8 +381,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: 28,
     paddingVertical: 17,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     minHeight: 56,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 2 },
@@ -411,14 +393,14 @@ const styles = StyleSheet.create({
   ctaBtnLoading: { opacity: 0.7 },
   ctaText: {
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: '700',
     color: colors.text,
     fontFamily: fonts.bold,
   },
   sheetsNote: {
     fontSize: 12,
     color: colors.textMuted,
-    textAlign: "center",
+    textAlign: 'center',
     marginTop: 12,
     fontFamily: fonts.regular,
   },

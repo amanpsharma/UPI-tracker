@@ -22,14 +22,23 @@ export default function ServerWakingBanner() {
 const styles = StyleSheet.create({
   banner: {
     position: 'absolute',
-    top: 0, left: 0, right: 0,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     backgroundColor: '#6366F1',
-    paddingTop: 50, paddingBottom: 10, paddingHorizontal: 16,
+    paddingTop: 50,
+    paddingBottom: 10,
+    paddingHorizontal: 16,
     zIndex: 9999,
   },
   text: {
-    color: '#fff', fontSize: 12, fontWeight: '600',
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
     fontFamily: 'Inter_600SemiBold',
   },
 });

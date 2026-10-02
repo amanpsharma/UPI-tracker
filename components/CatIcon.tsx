@@ -13,13 +13,17 @@ export default function CatIcon({ cat }: { cat: string }) {
     return (
       <View
         style={{
-          width: 18, height: 18,
-          alignItems: 'center', justifyContent: 'center',
+          width: 18,
+          height: 18,
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
         <View
           style={{
-            width: 12, height: 12, borderRadius: 2,
+            width: 12,
+            height: 12,
+            borderRadius: 2,
             backgroundColor: color,
             transform: [{ rotate: '45deg' }],
           }}
@@ -31,7 +35,8 @@ export default function CatIcon({ cat }: { cat: string }) {
   return (
     <View
       style={{
-        width: 14, height: 14,
+        width: 14,
+        height: 14,
         borderRadius: shape === 'circle' ? 7 : 3,
         backgroundColor: color,
       }}

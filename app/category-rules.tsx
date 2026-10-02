@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   FlatList,
@@ -9,22 +9,17 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-} from "react-native";
-import { Text } from "react-native-paper";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { router } from "expo-router";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
-import { CATEGORIES, CATEGORY_COLORS, CATEGORY_ICONS } from "@/constants";
-import { CAT_DISPLAY } from "@/constants/ui";
-import { Category } from "@/types";
-import {
-  CategoryRule,
-  getRules,
-  addRule,
-  deleteRule,
-} from "@/services/categoryRules";
-import { colors, fonts, radius } from "@/constants/theme";
+} from 'react-native';
+import { Text } from 'react-native-paper';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import { CATEGORIES, CATEGORY_COLORS, CATEGORY_ICONS } from '@/constants';
+import { CAT_DISPLAY } from '@/constants/ui';
+import { Category } from '@/types';
+import { CategoryRule, getRules, addRule, deleteRule } from '@/services/categoryRules';
+import { colors, fonts, radius } from '@/constants/theme';
 
 // ─── Rule row ────────────────────────────────────────────────────────────────
 function RuleRow({
@@ -36,7 +31,7 @@ function RuleRow({
   isLast: boolean;
   onDelete: () => void;
 }) {
-  const color = CATEGORY_COLORS[rule.category] ?? "#A0A0A0";
+  const color = CATEGORY_COLORS[rule.category] ?? '#A0A0A0';
   const label = CAT_DISPLAY[rule.category] ?? rule.category;
 
   return (
@@ -55,7 +50,7 @@ function RuleRow({
       />
 
       {/* Category badge */}
-      <View style={[styles.catBadge, { backgroundColor: color + "18" }]}>
+      <View style={[styles.catBadge, { backgroundColor: color + '18' }]}>
         <View style={[styles.catDot, { backgroundColor: color }]} />
         <Text style={[styles.catBadgeText, { color }]}>{label}</Text>
       </View>
@@ -83,16 +78,16 @@ function AddRuleSheet({
   onSave: (keyword: string, category: Category) => Promise<void>;
 }) {
   const insets = useSafeAreaInsets();
-  const [keyword, setKeyword] = useState("");
-  const [selected, setSelected] = useState<Category>("Food");
+  const [keyword, setKeyword] = useState('');
+  const [selected, setSelected] = useState<Category>('Food');
   const [saving, setSaving] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
   // Reset state when sheet opens
   useEffect(() => {
     if (visible) {
-      setKeyword("");
-      setSelected("Food");
+      setKeyword('');
+      setSelected('Food');
       setTimeout(() => inputRef.current?.focus(), 150);
     }
   }, [visible]);
@@ -109,17 +104,12 @@ function AddRuleSheet({
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       {/* Dim backdrop */}
       <Pressable style={styles.backdrop} onPress={onClose} />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.sheetWrapper}
       >
         <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
@@ -153,26 +143,16 @@ function AddRuleSheet({
               return (
                 <TouchableOpacity
                   key={cat}
-                  style={[
-                    styles.catChip,
-                    active && { backgroundColor: color, borderColor: color },
-                  ]}
+                  style={[styles.catChip, active && { backgroundColor: color, borderColor: color }]}
                   onPress={() => setSelected(cat)}
                   activeOpacity={0.7}
                 >
                   <MaterialCommunityIcons
                     name={CATEGORY_ICONS[cat] as any}
                     size={13}
-                    color={active ? "#fff" : color}
+                    color={active ? '#fff' : color}
                   />
-                  <Text
-                    style={[
-                      styles.catChipText,
-                      active && { color: "#fff" },
-                    ]}
-                  >
-                    {cat}
-                  </Text>
+                  <Text style={[styles.catChipText, active && { color: '#fff' }]}>{cat}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -180,17 +160,12 @@ function AddRuleSheet({
 
           {/* Save button */}
           <TouchableOpacity
-            style={[
-              styles.saveBtn,
-              (!keyword.trim() || saving) && styles.saveBtnDisabled,
-            ]}
+            style={[styles.saveBtn, (!keyword.trim() || saving) && styles.saveBtnDisabled]}
             onPress={handleSave}
             disabled={!keyword.trim() || saving}
             activeOpacity={0.8}
           >
-            <Text style={styles.saveBtnText}>
-              {saving ? "Saving…" : "Save rule"}
-            </Text>
+            <Text style={styles.saveBtnText}>{saving ? 'Saving…' : 'Save rule'}</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -213,14 +188,11 @@ export default function CategoryRulesScreen() {
     setRules(updated);
   }, []);
 
-  const handleSave = useCallback(
-    async (keyword: string, category: Category) => {
-      const updated = await addRule(keyword, category);
-      setRules(updated);
-      setShowSheet(false);
-    },
-    [],
-  );
+  const handleSave = useCallback(async (keyword: string, category: Category) => {
+    const updated = await addRule(keyword, category);
+    setRules(updated);
+    setShowSheet(false);
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -228,7 +200,7 @@ export default function CategoryRulesScreen() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backBtn}
-          onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/settings"))}
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/settings'))}
           activeOpacity={0.7}
         >
           <MaterialCommunityIcons name="arrow-left" size={22} color={colors.text} />
@@ -248,15 +220,9 @@ export default function CategoryRulesScreen() {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyBox}>
-            <MaterialCommunityIcons
-              name="filter-variant"
-              size={40}
-              color={colors.textMuted}
-            />
+            <MaterialCommunityIcons name="filter-variant" size={40} color={colors.textMuted} />
             <Text style={styles.emptyText}>No custom rules yet</Text>
-            <Text style={styles.emptyHint}>
-              Rules override the built-in merchant map
-            </Text>
+            <Text style={styles.emptyHint}>Rules override the built-in merchant map</Text>
           </View>
         }
         ListHeaderComponent={
@@ -287,11 +253,7 @@ export default function CategoryRulesScreen() {
         }
       />
 
-      <AddRuleSheet
-        visible={showSheet}
-        onClose={() => setShowSheet(false)}
-        onSave={handleSave}
-      />
+      <AddRuleSheet visible={showSheet} onClose={() => setShowSheet(false)} onSave={handleSave} />
     </SafeAreaView>
   );
 }
@@ -301,8 +263,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
 
   header: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -312,9 +274,9 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 19,
     backgroundColor: colors.surfaceElevated,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
@@ -322,7 +284,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: "800",
+    fontWeight: '800',
     color: colors.text,
     fontFamily: fonts.extrabold,
   },
@@ -343,12 +305,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    overflow: "hidden",
+    overflow: 'hidden',
     marginBottom: 12,
   },
   ruleRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 14,
     gap: 10,
@@ -366,17 +328,17 @@ const styles = StyleSheet.create({
   },
   keywordText: {
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: '700',
     color: colors.textSecondary,
-    fontFamily: "GeistMono_700Bold",
+    fontFamily: 'GeistMono_700Bold',
     letterSpacing: 0.4,
   },
 
   arrow: { marginHorizontal: 2 },
 
   catBadge: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
     borderRadius: 20,
     paddingHorizontal: 10,
@@ -390,7 +352,7 @@ const styles = StyleSheet.create({
   },
   catBadgeText: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '600',
     fontFamily: fonts.semibold,
   },
 
@@ -399,33 +361,33 @@ const styles = StyleSheet.create({
     height: 26,
     borderRadius: 13,
     backgroundColor: colors.surfaceElevated,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   // Add button
   addBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
     borderWidth: 1.5,
     borderColor: colors.border,
-    borderStyle: "dashed",
+    borderStyle: 'dashed',
     borderRadius: radius.md,
     paddingVertical: 14,
-    backgroundColor: "transparent",
+    backgroundColor: 'transparent',
   },
   addBtnText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '600',
     color: colors.textSecondary,
     fontFamily: fonts.semibold,
   },
 
   // Empty state
   emptyBox: {
-    alignItems: "center",
+    alignItems: 'center',
     paddingVertical: 40,
     gap: 8,
     marginBottom: 12,
@@ -433,7 +395,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     color: colors.textSecondary,
-    fontWeight: "600",
+    fontWeight: '600',
     fontFamily: fonts.semibold,
   },
   emptyHint: {
@@ -445,11 +407,11 @@ const styles = StyleSheet.create({
   // Bottom sheet
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.6)",
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   sheetWrapper: {
     flex: 1,
-    justifyContent: "flex-end",
+    justifyContent: 'flex-end',
   },
   sheet: {
     backgroundColor: colors.bgSecondary,
@@ -457,7 +419,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 12,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -470,12 +432,12 @@ const styles = StyleSheet.create({
     height: 4,
     backgroundColor: colors.border,
     borderRadius: 2,
-    alignSelf: "center",
+    alignSelf: 'center',
     marginBottom: 20,
   },
   sheetTitle: {
     fontSize: 18,
-    fontWeight: "800",
+    fontWeight: '800',
     color: colors.text,
     fontFamily: fonts.extrabold,
     marginBottom: 4,
@@ -490,7 +452,7 @@ const styles = StyleSheet.create({
 
   inputLabel: {
     fontSize: 10,
-    fontWeight: "700",
+    fontWeight: '700',
     color: colors.textMuted,
     letterSpacing: 0.8,
     fontFamily: fonts.bold,
@@ -505,18 +467,18 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
     color: colors.text,
-    fontFamily: "GeistMono_700Bold",
+    fontFamily: 'GeistMono_700Bold',
     letterSpacing: 0.5,
   },
 
   catGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
   },
   catChip: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 5,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -527,7 +489,7 @@ const styles = StyleSheet.create({
   },
   catChipText: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '600',
     color: colors.textSecondary,
     fontFamily: fonts.semibold,
   },
@@ -537,13 +499,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: radius.md,
     paddingVertical: 15,
-    alignItems: "center",
+    alignItems: 'center',
   },
   saveBtnDisabled: { opacity: 0.4 },
   saveBtnText: {
     color: colors.text,
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: '700',
     fontFamily: fonts.bold,
   },
 });

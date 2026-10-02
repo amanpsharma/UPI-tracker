@@ -6,8 +6,13 @@ export type Budgets = Record<Category, number>;
 const KEY = '@upi_tracker_budgets';
 
 const DEFAULT: Budgets = {
-  Food: 0, Transport: 0, Shopping: 0,
-  Bills: 0, Entertainment: 0, Health: 0, Other: 0,
+  Food: 0,
+  Transport: 0,
+  Shopping: 0,
+  Bills: 0,
+  Entertainment: 0,
+  Health: 0,
+  Other: 0,
 };
 
 export async function getBudgets(): Promise<Budgets> {

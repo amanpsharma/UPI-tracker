@@ -1,11 +1,5 @@
 export type Category =
-  | 'Food'
-  | 'Transport'
-  | 'Shopping'
-  | 'Bills'
-  | 'Entertainment'
-  | 'Health'
-  | 'Other';
+  'Food' | 'Transport' | 'Shopping' | 'Bills' | 'Entertainment' | 'Health' | 'Other';
 
 export type TransactionSource = 'sms' | 'manual';
 export type TransactionType = 'sent' | 'received';

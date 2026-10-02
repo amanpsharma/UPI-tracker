@@ -103,7 +103,10 @@ function shouldUpdateRecipient(stored: string, parsed: string): boolean {
 }
 
 function findExisting(txs: Transaction[], dedupeKey: string, fp: string): Transaction | undefined {
-  return txs.find((t) => (t.dedupeKey && t.dedupeKey === dedupeKey) || fingerprint(t.amount, t.paidAt, t.upiId) === fp);
+  return txs.find(
+    (t) =>
+      (t.dedupeKey && t.dedupeKey === dedupeKey) || fingerprint(t.amount, t.paidAt, t.upiId) === fp,
+  );
 }
 
 export async function syncSmsToMongo(
@@ -116,7 +119,7 @@ export async function syncSmsToMongo(
   const SmsAndroid = getSmsModule();
   if (!SmsAndroid) {
     throw new Error(
-      'Native SMS module not linked. Run "npx expo prebuild --platform android" then "npx expo run:android".'
+      'Native SMS module not linked. Run "npx expo prebuild --platform android" then "npx expo run:android".',
     );
   }
 
@@ -129,8 +132,7 @@ export async function syncSmsToMongo(
   // ago on first run. Caller can still pass an explicit sinceDate to override.
   // We rewind 5 minutes to handle SMS that arrived during the previous sync.
   const FIVE_MIN_MS = 5 * 60 * 1000;
-  const effectiveSince =
-    sinceDate ?? new Date((await getLastSyncDate()).getTime() - FIVE_MIN_MS);
+  const effectiveSince = sinceDate ?? new Date((await getLastSyncDate()).getTime() - FIVE_MIN_MS);
   // Capture the scan-start time so we save it AFTER a successful sync.
   const scanStartedAt = new Date();
 
@@ -138,7 +140,7 @@ export async function syncSmsToMongo(
     SmsAndroid.list(
       JSON.stringify({ box: 'inbox', minDate: effectiveSince.getTime(), maxCount: 10000 }),
       (fail: string) => reject(new Error(`Could not read SMS: ${fail}`)),
-      (_count: number, smsList: string) => resolve(JSON.parse(smsList))
+      (_count: number, smsList: string) => resolve(JSON.parse(smsList)),
     );
   });
 
@@ -173,9 +175,7 @@ export async function syncSmsToMongo(
 
   const newTransactions = candidates.filter((tx) => {
     const fp = fingerprint(tx.amount, tx.paidAt, tx.upiId);
-    const isDupe =
-      (tx.dedupeKey && existingSet.has(tx.dedupeKey)) ||
-      existingSet.has(fp);
+    const isDupe = (tx.dedupeKey && existingSet.has(tx.dedupeKey)) || existingSet.has(fp);
 
     if (isDupe) {
       // Fix stale "UPI Payment" / bare-username names now that we can extract a real name.
@@ -192,8 +192,8 @@ export async function syncSmsToMongo(
   if (nameRepairs.length > 0) {
     await Promise.all(
       nameRepairs.map(({ id, recipient }) =>
-        api.updateTransaction(id, { recipient }).catch(() => {})
-      )
+        api.updateTransaction(id, { recipient }).catch(() => {}),
+      ),
     );
   }
 

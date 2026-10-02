@@ -1,8 +1,8 @@
-import { useAuth } from "@clerk/clerk-expo";
-import { Redirect, router } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
-import { View, ActivityIndicator } from "react-native";
-import { useEffect } from "react";
+import { useAuth } from '@clerk/clerk-expo';
+import { Redirect, router } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
+import { View, ActivityIndicator } from 'react-native';
+import { useEffect } from 'react';
 
 // Signals expo-web-browser to close the in-app browser and resolve
 // the openAuthSessionAsync promise back in useSSO.
@@ -13,7 +13,7 @@ export default function SSOCallback() {
 
   useEffect(() => {
     if (isLoaded && isSignedIn) {
-      router.replace("/(tabs)/");
+      router.replace('/(tabs)/');
       return;
     }
 
@@ -22,7 +22,7 @@ export default function SSOCallback() {
     }
 
     const timeout = setTimeout(() => {
-      router.replace("/(tabs)/");
+      router.replace('/(tabs)/');
     }, 700);
 
     return () => clearTimeout(timeout);
@@ -34,9 +34,9 @@ export default function SSOCallback() {
       <View
         style={{
           flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "#F8F9FC",
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: '#F8F9FC',
         }}
       >
         <ActivityIndicator size="large" color="#6366F1" />
@@ -48,9 +48,9 @@ export default function SSOCallback() {
     <View
       style={{
         flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "#F8F9FC",
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#F8F9FC',
       }}
     >
       <ActivityIndicator size="large" color="#6366F1" />

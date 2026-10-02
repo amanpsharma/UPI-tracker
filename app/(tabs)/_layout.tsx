@@ -1,9 +1,9 @@
-import { useAuth } from "@clerk/clerk-expo";
-import { Tabs } from "expo-router";
-import { ActivityIndicator, View } from "react-native";
-import AnimatedTabBar from "@/components/AnimatedTabBar";
-import FloatingAddButton from "@/components/FloatingAddButton";
-import { colors } from "@/constants/theme";
+import { useAuth } from '@clerk/clerk-expo';
+import { Tabs } from 'expo-router';
+import { ActivityIndicator, View } from 'react-native';
+import AnimatedTabBar from '@/components/AnimatedTabBar';
+import FloatingAddButton from '@/components/FloatingAddButton';
+import { colors } from '@/constants/theme';
 
 export default function TabsLayout() {
   const { isLoaded } = useAuth();
@@ -13,8 +13,8 @@ export default function TabsLayout() {
       <View
         style={{
           flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
+          justifyContent: 'center',
+          alignItems: 'center',
           backgroundColor: colors.bg,
         }}
       >
@@ -31,11 +31,11 @@ export default function TabsLayout() {
           headerShown: false,
         }}
       >
-        <Tabs.Screen name="index" options={{ title: "Home" }} />
-        <Tabs.Screen name="activity" options={{ title: "Activity" }} />
-        <Tabs.Screen name="history" options={{ title: "History" }} />
-        <Tabs.Screen name="stats" options={{ title: "Insights" }} />
-        <Tabs.Screen name="settings" options={{ title: "Settings" }} />
+        <Tabs.Screen name="index" options={{ title: 'Home' }} />
+        <Tabs.Screen name="activity" options={{ title: 'Activity' }} />
+        <Tabs.Screen name="history" options={{ title: 'History' }} />
+        <Tabs.Screen name="stats" options={{ title: 'Insights' }} />
+        <Tabs.Screen name="settings" options={{ title: 'Settings' }} />
         <Tabs.Screen name="add" options={{ href: null }} />
       </Tabs>
       <FloatingAddButton />

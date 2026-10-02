@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState } from 'react';
 import {
   View,
   ScrollView,
@@ -7,57 +7,56 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
-} from "react-native";
-import { Text, Snackbar } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
-import { format, isToday, isYesterday } from "date-fns";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
-import DateTimePicker, {
-  DateTimePickerEvent,
-} from "@react-native-community/datetimepicker";
-import { api } from "@/services/api";
-import { CATEGORIES } from "@/constants";
-import { CAT_DISPLAY } from "@/constants/ui";
-import CatIcon from "@/components/CatIcon";
-import { Category } from "@/types";
-import { colors, fonts, radius } from "@/constants/theme";
+} from 'react-native';
+import { Text, Snackbar } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { format, isToday, isYesterday } from 'date-fns';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { api } from '@/services/api';
+import { CATEGORIES } from '@/constants';
+import { CAT_DISPLAY } from '@/constants/ui';
+import CatIcon from '@/components/CatIcon';
+import { Category } from '@/types';
+import { colors, fonts, radius } from '@/constants/theme';
 
-const BANKS = ["HDFC", "ICICI", "SBI", "Axis", "Kotak"];
+const BANKS = ['HDFC', 'ICICI', 'SBI', 'Axis', 'Kotak'];
 
 export default function AddTransaction() {
-  const [txType, setTxType] = useState<"sent" | "received">("sent");
-  const [amount, setAmount] = useState("");
-  const [recipient, setRecipient] = useState("");
-  const [upiId, setUpiId] = useState("");
-  const [category, setCategory] = useState<Category>("Other");
+  const [txType, setTxType] = useState<'sent' | 'received'>('sent');
+  const [amount, setAmount] = useState('');
+  const [recipient, setRecipient] = useState('');
+  const [upiId, setUpiId] = useState('');
+  const [category, setCategory] = useState<Category>('Other');
   const [date, setDate] = useState(new Date());
-  const [bank, setBank] = useState("HDFC");
+  const [bank, setBank] = useState('HDFC');
   const [showCatPicker, setShowCatPicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [snack, setSnack] = useState("");
+  const [snack, setSnack] = useState('');
 
   const parsedAmount = parseFloat(amount);
-  const isValidAmount = !!amount.trim() && !isNaN(parsedAmount) && parsedAmount > 0 && parsedAmount <= 10_000_000;
+  const isValidAmount =
+    !!amount.trim() && !isNaN(parsedAmount) && parsedAmount > 0 && parsedAmount <= 10_000_000;
   const isValid = isValidAmount && !!recipient.trim();
 
   const dateLabel = isToday(date)
-    ? "Today"
+    ? 'Today'
     : isYesterday(date)
-      ? "Yesterday"
-      : format(date, "MMM d");
-  const timeLabel = format(date, "HH:mm");
+      ? 'Yesterday'
+      : format(date, 'MMM d');
+  const timeLabel = format(date, 'HH:mm');
 
   const handleSave = async () => {
     if (!recipient.trim()) {
-      setSnack("Recipient name is required.");
+      setSnack('Recipient name is required.');
       return;
     }
     if (!isValidAmount) {
-      setSnack("Enter a valid amount (1 – 1,00,00,000).");
+      setSnack('Enter a valid amount (1 – 1,00,00,000).');
       return;
     }
     const parsed = parsedAmount;
@@ -68,17 +67,17 @@ export default function AddTransaction() {
         recipient: recipient.trim(),
         upiId: upiId.trim(),
         bank: bank,
-        note: "",
+        note: '',
         category,
-        source: "manual",
+        source: 'manual',
         type: txType,
-        transactionId: "",
+        transactionId: '',
         paidAt: date.toISOString(),
-        dedupeKey: "",
+        dedupeKey: '',
       });
-      router.replace("/(tabs)/");
+      router.replace('/(tabs)/');
     } catch (err: any) {
-      setSnack(err.message ?? "Failed to save.");
+      setSnack(err.message ?? 'Failed to save.');
     } finally {
       setLoading(false);
     }
@@ -103,10 +102,10 @@ export default function AddTransaction() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -115,11 +114,7 @@ export default function AddTransaction() {
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             style={styles.backBtn}
           >
-            <MaterialCommunityIcons
-              name="arrow-left"
-              size={20}
-              color={colors.text}
-            />
+            <MaterialCommunityIcons name="arrow-left" size={20} color={colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Add transaction</Text>
           <View style={{ width: 36 }} />
@@ -133,34 +128,18 @@ export default function AddTransaction() {
           {/* Expense / Income toggle */}
           <View style={styles.toggle}>
             <TouchableOpacity
-              style={[
-                styles.toggleOption,
-                txType === "sent" && styles.toggleActive,
-              ]}
-              onPress={() => setTxType("sent")}
+              style={[styles.toggleOption, txType === 'sent' && styles.toggleActive]}
+              onPress={() => setTxType('sent')}
             >
-              <Text
-                style={[
-                  styles.toggleText,
-                  txType === "sent" && styles.toggleTextActive,
-                ]}
-              >
+              <Text style={[styles.toggleText, txType === 'sent' && styles.toggleTextActive]}>
                 Expense
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[
-                styles.toggleOption,
-                txType === "received" && styles.toggleActiveIncome,
-              ]}
-              onPress={() => setTxType("received")}
+              style={[styles.toggleOption, txType === 'received' && styles.toggleActiveIncome]}
+              onPress={() => setTxType('received')}
             >
-              <Text
-                style={[
-                  styles.toggleText,
-                  txType === "received" && styles.toggleTextActive,
-                ]}
-              >
+              <Text style={[styles.toggleText, txType === 'received' && styles.toggleTextActive]}>
                 Income
               </Text>
             </TouchableOpacity>
@@ -170,14 +149,9 @@ export default function AddTransaction() {
           <View style={styles.amountSection}>
             <Text style={styles.fieldLabel}>AMOUNT</Text>
             <View style={styles.amountRow}>
-              <Text style={styles.amountPrefix}>
-                {txType === "sent" ? "-" : "+"}₹
-              </Text>
+              <Text style={styles.amountPrefix}>{txType === 'sent' ? '-' : '+'}₹</Text>
               <TextInput
-                style={[
-                  styles.amountInput,
-                  !amount && styles.amountPlaceholder,
-                ]}
+                style={[styles.amountInput, !amount && styles.amountPlaceholder]}
                 value={amount}
                 onChangeText={setAmount}
                 keyboardType="numeric"
@@ -209,11 +183,9 @@ export default function AddTransaction() {
               activeOpacity={0.7}
             >
               <CatIcon cat={category} />
-              <Text style={styles.selectText}>
-                {CAT_DISPLAY[category] ?? category}
-              </Text>
+              <Text style={styles.selectText}>{CAT_DISPLAY[category] ?? category}</Text>
               <MaterialCommunityIcons
-                name={showCatPicker ? "chevron-up" : "chevron-down"}
+                name={showCatPicker ? 'chevron-up' : 'chevron-down'}
                 size={18}
                 color={colors.textMuted}
               />
@@ -240,19 +212,12 @@ export default function AddTransaction() {
                     >
                       <CatIcon cat={cat} />
                       <Text
-                        style={[
-                          styles.catOptionText,
-                          isSelected && styles.catOptionTextActive,
-                        ]}
+                        style={[styles.catOptionText, isSelected && styles.catOptionTextActive]}
                       >
                         {CAT_DISPLAY[cat] ?? cat}
                       </Text>
                       {isSelected && (
-                        <MaterialCommunityIcons
-                          name="check"
-                          size={16}
-                          color={colors.success}
-                        />
+                        <MaterialCommunityIcons name="check" size={16} color={colors.success} />
                       )}
                     </TouchableOpacity>
                   );
@@ -299,7 +264,7 @@ export default function AddTransaction() {
             <DateTimePicker
               value={date}
               mode="date"
-              display={Platform.OS === "ios" ? "inline" : "default"}
+              display={Platform.OS === 'ios' ? 'inline' : 'default'}
               maximumDate={new Date()}
               onChange={onDateChange}
             />
@@ -308,7 +273,7 @@ export default function AddTransaction() {
             <DateTimePicker
               value={date}
               mode="time"
-              display={Platform.OS === "ios" ? "spinner" : "default"}
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
               onChange={onTimeChange}
             />
           )}
@@ -340,14 +305,7 @@ export default function AddTransaction() {
                   style={[styles.bankChip, bank === b && styles.bankChipActive]}
                   onPress={() => setBank(b)}
                 >
-                  <Text
-                    style={[
-                      styles.bankText,
-                      bank === b && styles.bankTextActive,
-                    ]}
-                  >
-                    {b}
-                  </Text>
+                  <Text style={[styles.bankText, bank === b && styles.bankTextActive]}>{b}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -364,26 +322,17 @@ export default function AddTransaction() {
             <Text style={styles.cancelText}>Cancel</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[
-              styles.primaryBtn,
-              (!isValid || loading) && styles.primaryBtnDisabled,
-            ]}
+            style={[styles.primaryBtn, (!isValid || loading) && styles.primaryBtnDisabled]}
             onPress={handleSave}
             disabled={!isValid || loading}
             activeOpacity={0.85}
           >
-            <Text style={styles.primaryText}>
-              {loading ? "Saving..." : "Add transaction"}
-            </Text>
+            <Text style={styles.primaryText}>{loading ? 'Saving...' : 'Add transaction'}</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
 
-      <Snackbar
-        visible={!!snack}
-        onDismiss={() => setSnack("")}
-        duration={3500}
-      >
+      <Snackbar visible={!!snack} onDismiss={() => setSnack('')} duration={3500}>
         {snack}
       </Snackbar>
     </SafeAreaView>
@@ -403,9 +352,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
 
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 14,
   },
@@ -414,14 +363,14 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 12,
     backgroundColor: colors.surface,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.border,
   },
   headerTitle: {
     fontSize: 17,
-    fontWeight: "700",
+    fontWeight: '700',
     color: colors.text,
     fontFamily: fonts.bold,
   },
@@ -429,7 +378,7 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 20, paddingBottom: 12, gap: 16 },
 
   toggle: {
-    flexDirection: "row",
+    flexDirection: 'row',
     backgroundColor: colors.surface,
     borderRadius: radius.md,
     padding: 4,
@@ -439,7 +388,7 @@ const styles = StyleSheet.create({
   toggleOption: {
     flex: 1,
     paddingVertical: 10,
-    alignItems: "center",
+    alignItems: 'center',
     borderRadius: radius.sm,
   },
   toggleActive: {
@@ -450,24 +399,24 @@ const styles = StyleSheet.create({
   },
   toggleText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '600',
     color: colors.textMuted,
     fontFamily: fonts.semibold,
   },
   toggleTextActive: { color: colors.text },
 
-  amountSection: { alignItems: "center", paddingVertical: 8 },
-  amountRow: { flexDirection: "row", alignItems: "center", marginTop: 8 },
+  amountSection: { alignItems: 'center', paddingVertical: 8 },
+  amountRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   amountPrefix: {
     fontSize: 26,
     color: colors.textMuted,
-    fontWeight: "500",
+    fontWeight: '500',
     fontFamily: fonts.medium,
     marginRight: 4,
   },
   amountInput: {
     fontSize: 52,
-    fontWeight: "800",
+    fontWeight: '800',
     color: colors.text,
     fontFamily: fonts.monoBold,
     padding: 0,
@@ -478,7 +427,7 @@ const styles = StyleSheet.create({
   field: { gap: 6 },
   fieldLabel: {
     fontSize: 11,
-    fontWeight: "700",
+    fontWeight: '700',
     color: colors.textMuted,
     letterSpacing: 0.7,
     fontFamily: fonts.bold,
@@ -493,8 +442,8 @@ const styles = StyleSheet.create({
 
   selectRow: {
     ...BOX,
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
   },
   selectRowOpen: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
@@ -512,11 +461,11 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderBottomLeftRadius: radius.md,
     borderBottomRightRadius: radius.md,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   catOption: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
     paddingHorizontal: 14,
     paddingVertical: 13,
@@ -529,12 +478,12 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: fonts.regular,
   },
-  catOptionTextActive: { fontWeight: "600", fontFamily: fonts.semibold },
+  catOptionTextActive: { fontWeight: '600', fontFamily: fonts.semibold },
 
-  rowFields: { flexDirection: "row", gap: 12 },
+  rowFields: { flexDirection: 'row', gap: 12 },
   rowField: { flex: 1, gap: 6 },
 
-  banksRow: { flexDirection: "row", gap: 8 },
+  banksRow: { flexDirection: 'row', gap: 8 },
   bankChip: {
     paddingHorizontal: 18,
     paddingVertical: 10,
@@ -546,14 +495,14 @@ const styles = StyleSheet.create({
   bankChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   bankText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '600',
     color: colors.textSecondary,
     fontFamily: fonts.semibold,
   },
-  bankTextActive: { color: "#fff" },
+  bankTextActive: { color: '#fff' },
 
   bottomRow: {
-    flexDirection: "row",
+    flexDirection: 'row',
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 16,
@@ -566,14 +515,14 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 15,
     borderRadius: radius.lg,
-    alignItems: "center",
+    alignItems: 'center',
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
   },
   cancelText: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: '600',
     color: colors.textSecondary,
     fontFamily: fonts.semibold,
   },
@@ -581,14 +530,14 @@ const styles = StyleSheet.create({
     flex: 2,
     paddingVertical: 15,
     borderRadius: radius.lg,
-    alignItems: "center",
+    alignItems: 'center',
     backgroundColor: colors.primary,
   },
   primaryBtnDisabled: { backgroundColor: colors.textDisabled },
   primaryText: {
     fontSize: 15,
-    fontWeight: "600",
-    color: "#fff",
+    fontWeight: '600',
+    color: '#fff',
     fontFamily: fonts.semibold,
   },
 });

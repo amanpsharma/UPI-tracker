@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { View, ViewStyle, StyleSheet } from "react-native";
+import { useEffect } from 'react';
+import { View, ViewStyle, StyleSheet } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -7,8 +7,8 @@ import Animated, {
   withTiming,
   withSequence,
   Easing,
-} from "react-native-reanimated";
-import { colors } from "@/constants/theme";
+} from 'react-native-reanimated';
+import { colors } from '@/constants/theme';
 
 type Props = {
   width?: number | string;
@@ -17,12 +17,7 @@ type Props = {
   style?: ViewStyle;
 };
 
-export default function Skeleton({
-  width = "100%",
-  height = 14,
-  radius = 6,
-  style,
-}: Props) {
+export default function Skeleton({ width = '100%', height = 14, radius = 6, style }: Props) {
   const opacity = useSharedValue(0.4);
 
   useEffect(() => {
@@ -72,8 +67,8 @@ export function SkeletonCard({ height = 88 }: { height?: number }) {
 const styles = StyleSheet.create({
   base: { backgroundColor: colors.surfaceElevated },
   row: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
     paddingHorizontal: 14,
     paddingVertical: 13,

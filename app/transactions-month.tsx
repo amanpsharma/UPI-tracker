@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from 'react';
 import {
   View,
   SectionList,
@@ -6,28 +6,28 @@ import {
   RefreshControl,
   TouchableOpacity,
   ActivityIndicator,
-} from "react-native";
-import { Text } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams, router } from "expo-router";
-import { format, subDays } from "date-fns";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useFocusEffect } from "expo-router";
-import { api } from "@/services/api";
-import { CATEGORY_COLORS } from "@/constants";
-import { avatarStyle } from "@/constants/ui";
-import { showToast } from "@/services/toast";
-import { Transaction } from "@/types";
-import { colors, fonts, radius } from "@/constants/theme";
+} from 'react-native';
+import { Text } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams, router } from 'expo-router';
+import { format, subDays } from 'date-fns';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
+import { api } from '@/services/api';
+import { CATEGORY_COLORS } from '@/constants';
+import { avatarStyle } from '@/constants/ui';
+import { showToast } from '@/services/toast';
+import { Transaction } from '@/types';
+import { colors, fonts, radius } from '@/constants/theme';
 
 // Uses subDays to correctly handle DST boundaries instead of fixed ms arithmetic
 function getDayLabel(dateStr: string): string {
-  const today = format(new Date(), "yyyy-MM-dd");
-  const yesterday = format(subDays(new Date(), 1), "yyyy-MM-dd");
-  if (dateStr === today) return "Today";
-  if (dateStr === yesterday) return "Yesterday";
-  const [y, m, d] = dateStr.split("-").map(Number);
-  return format(new Date(y, m - 1, d), "EEE, d MMM yyyy");
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+  if (dateStr === today) return 'Today';
+  if (dateStr === yesterday) return 'Yesterday';
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return format(new Date(y, m - 1, d), 'EEE, d MMM yyyy');
 }
 
 type Section = {
@@ -44,29 +44,25 @@ export default function TransactionsMonthScreen() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
-  const monthStr = month ?? format(new Date(), "yyyy-MM");
+  const monthStr = month ?? format(new Date(), 'yyyy-MM');
   const isValidMonth = /^\d{4}-\d{2}$/.test(monthStr);
 
   const { monthStart, monthTitle } = useMemo(() => {
     if (!isValidMonth) {
       const now = new Date();
-      return { monthStart: now, monthTitle: format(now, "MMMM yyyy") };
+      return { monthStart: now, monthTitle: format(now, 'MMMM yyyy') };
     }
-    const [y, m] = monthStr.split("-").map(Number);
+    const [y, m] = monthStr.split('-').map(Number);
     const start = new Date(y, m - 1, 1);
-    return { monthStart: start, monthTitle: format(start, "MMMM yyyy") };
+    return { monthStart: start, monthTitle: format(start, 'MMMM yyyy') };
   }, [monthStr, isValidMonth]);
 
   const load = useCallback(async () => {
-    setError("");
+    setError('');
     try {
-      const from = new Date(
-        monthStart.getFullYear(),
-        monthStart.getMonth(),
-        1,
-      ).toISOString();
+      const from = new Date(monthStart.getFullYear(), monthStart.getMonth(), 1).toISOString();
       const to = new Date(
         monthStart.getFullYear(),
         monthStart.getMonth() + 1,
@@ -78,9 +74,9 @@ export default function TransactionsMonthScreen() {
       const data = await api.getTransactions({ from, to, limit: 500 });
       setTransactions(data);
     } catch (err: any) {
-      const msg = err?.message ?? "Failed to load transactions.";
+      const msg = err?.message ?? 'Failed to load transactions.';
       setError(msg);
-      showToast(msg, "error");
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -101,7 +97,7 @@ export default function TransactionsMonthScreen() {
   const { sections, totalSent } = useMemo(() => {
     const dateMap: Record<string, Transaction[]> = {};
     for (const tx of transactions) {
-      const key = format(new Date(tx.paidAt), "yyyy-MM-dd");
+      const key = format(new Date(tx.paidAt), 'yyyy-MM-dd');
       if (!dateMap[key]) dateMap[key] = [];
       dateMap[key].push(tx);
     }
@@ -116,7 +112,7 @@ export default function TransactionsMonthScreen() {
         let dayTotal = 0;
         let dayReceived = 0;
         for (const tx of txs) {
-          if ((tx.type ?? "sent") === "sent") {
+          if ((tx.type ?? 'sent') === 'sent') {
             dayTotal += tx.amount;
             sentSum += tx.amount;
           } else {
@@ -136,28 +132,28 @@ export default function TransactionsMonthScreen() {
   }, [transactions]);
 
   const sentCount = useMemo(
-    () => transactions.filter((tx) => (tx.type ?? "sent") === "sent").length,
+    () => transactions.filter((tx) => (tx.type ?? 'sent') === 'sent').length,
     [transactions],
   );
   const receivedCount = transactions.length - sentCount;
 
   const renderItem = useCallback(({ item }: { item: Transaction }) => {
-    const av = avatarStyle(item.recipient || "U");
-    const isSent = (item.type ?? "sent") === "sent";
+    const av = avatarStyle(item.recipient || 'U');
+    const isSent = (item.type ?? 'sent') === 'sent';
     return (
       <TouchableOpacity
         style={styles.txRow}
         activeOpacity={0.7}
         onPress={() =>
           router.push({
-            pathname: "/transaction-detail",
+            pathname: '/transaction-detail',
             params: { id: item._id },
           })
         }
       >
         <View style={[styles.avatar, { backgroundColor: av.bg }]}>
           <Text style={[styles.avatarText, { color: av.text }]}>
-            {(item.recipient || "U")[0].toUpperCase()}
+            {(item.recipient || 'U')[0].toUpperCase()}
           </Text>
         </View>
         <View style={styles.txInfo}>
@@ -169,20 +165,17 @@ export default function TransactionsMonthScreen() {
               style={[
                 styles.catDot,
                 {
-                  backgroundColor:
-                    CATEGORY_COLORS[item.category] ?? "#A0A0A0",
+                  backgroundColor: CATEGORY_COLORS[item.category] ?? '#A0A0A0',
                 },
               ]}
             />
             <Text style={styles.txMetaText}>
-              {item.category} · {format(new Date(item.paidAt), "HH:mm")}
+              {item.category} · {format(new Date(item.paidAt), 'HH:mm')}
             </Text>
           </View>
         </View>
-        <Text
-          style={[styles.txAmount, { color: isSent ? colors.text : colors.success }]}
-        >
-          {isSent ? "-" : "+"}₹{item.amount.toLocaleString("en-IN")}
+        <Text style={[styles.txAmount, { color: isSent ? colors.text : colors.success }]}>
+          {isSent ? '-' : '+'}₹{item.amount.toLocaleString('en-IN')}
         </Text>
       </TouchableOpacity>
     );
@@ -194,26 +187,24 @@ export default function TransactionsMonthScreen() {
       <View style={styles.sectionTotals}>
         {section.receivedTotal > 0 && (
           <Text style={[styles.sectionTotal, { color: colors.success }]}>
-            +₹{section.receivedTotal.toLocaleString("en-IN")}
+            +₹{section.receivedTotal.toLocaleString('en-IN')}
           </Text>
         )}
         {section.total > 0 && (
-          <Text style={styles.sectionTotal}>
-            -₹{section.total.toLocaleString("en-IN")}
-          </Text>
+          <Text style={styles.sectionTotal}>-₹{section.total.toLocaleString('en-IN')}</Text>
         )}
       </View>
     </View>
   );
 
   const headerSub = useMemo(() => {
-    if (loading) return "";
+    if (loading) return '';
     const parts: string[] = [];
     if (sentCount > 0) parts.push(`${sentCount} sent`);
     if (receivedCount > 0) parts.push(`${receivedCount} received`);
-    if (parts.length === 0) return "No transactions";
-    if (totalSent > 0) parts.push(`-₹${totalSent.toLocaleString("en-IN")}`);
-    return parts.join(" · ");
+    if (parts.length === 0) return 'No transactions';
+    if (totalSent > 0) parts.push(`-₹${totalSent.toLocaleString('en-IN')}`);
+    return parts.join(' · ');
   }, [loading, sentCount, receivedCount, totalSent]);
 
   return (
@@ -222,19 +213,13 @@ export default function TransactionsMonthScreen() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backBtn}
-          onPress={() =>
-            router.canGoBack()
-              ? router.back()
-              : router.replace("/(tabs)/history")
-          }
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/history'))}
         >
           <MaterialCommunityIcons name="arrow-left" size={22} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{monthTitle}</Text>
-          {headerSub ? (
-            <Text style={styles.headerSub}>{headerSub}</Text>
-          ) : null}
+          {headerSub ? <Text style={styles.headerSub}>{headerSub}</Text> : null}
         </View>
       </View>
 
@@ -252,11 +237,7 @@ export default function TransactionsMonthScreen() {
         </View>
       ) : transactions.length === 0 ? (
         <View style={styles.center}>
-          <MaterialCommunityIcons
-            name="receipt-text-outline"
-            size={40}
-            color={colors.textMuted}
-          />
+          <MaterialCommunityIcons name="receipt-text-outline" size={40} color={colors.textMuted} />
           <Text style={styles.emptyText}>No transactions in {monthTitle}</Text>
         </View>
       ) : (
@@ -292,12 +273,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg,
   },
-  center: { flex: 1, justifyContent: "center", alignItems: "center", gap: 10 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 10 },
 
   // Header
   header: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -308,9 +289,9 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: 19,
     backgroundColor: colors.surfaceElevated,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
@@ -319,14 +300,14 @@ const styles = StyleSheet.create({
   headerCenter: { flex: 1 },
   headerTitle: {
     fontSize: 20,
-    fontWeight: "800",
+    fontWeight: '800',
     color: colors.text,
     fontFamily: fonts.extrabold,
   },
   headerSub: {
     fontSize: 12,
     color: colors.textMuted,
-    fontWeight: "500",
+    fontWeight: '500',
     marginTop: 1,
     fontFamily: fonts.medium,
   },
@@ -335,21 +316,26 @@ const styles = StyleSheet.create({
   list: { paddingHorizontal: 16, paddingBottom: 32 },
 
   sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingTop: 20,
     paddingBottom: 8,
     paddingHorizontal: 4,
   },
-  sectionDate: { fontSize: 12, fontWeight: "700", color: colors.textMuted, fontFamily: fonts.bold },
-  sectionTotals: { flexDirection: "row", gap: 6 },
-  sectionTotal: { fontSize: 12, color: colors.textSecondary, fontWeight: "500", fontFamily: fonts.medium },
+  sectionDate: { fontSize: 12, fontWeight: '700', color: colors.textMuted, fontFamily: fonts.bold },
+  sectionTotals: { flexDirection: 'row', gap: 6 },
+  sectionTotal: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: '500',
+    fontFamily: fonts.medium,
+  },
 
   // Transaction row
   txRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
     backgroundColor: colors.surface,
     paddingHorizontal: 14,
@@ -364,23 +350,23 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarText: {
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: '700',
     fontFamily: fonts.bold,
   },
   txInfo: { flex: 1 },
   txName: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '600',
     color: colors.text,
     fontFamily: fonts.semibold,
     marginBottom: 3,
   },
-  txMeta: { flexDirection: "row", alignItems: "center", gap: 5 },
+  txMeta: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   catDot: { width: 7, height: 7, borderRadius: 2 },
   txMetaText: {
     fontSize: 12,
@@ -389,16 +375,16 @@ const styles = StyleSheet.create({
   },
   txAmount: {
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: '700',
     fontFamily: fonts.monoBold,
   },
 
   emptyText: {
     fontSize: 14,
     color: colors.textSecondary,
-    fontWeight: "500",
+    fontWeight: '500',
     fontFamily: fonts.medium,
-    textAlign: "center",
+    textAlign: 'center',
   },
 
   retryBtn: {
@@ -409,9 +395,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   retryText: {
-    color: "#fff",
+    color: '#fff',
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '600',
     fontFamily: fonts.semibold,
   },
 });

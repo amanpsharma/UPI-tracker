@@ -1,8 +1,8 @@
-import { useRef } from "react";
-import { TouchableOpacity, StyleSheet, Animated } from "react-native";
-import { Text } from "react-native-paper";
-import Swipeable from "react-native-gesture-handler/Swipeable";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRef } from 'react';
+import { TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { Text } from 'react-native-paper';
+import Swipeable from 'react-native-gesture-handler/Swipeable';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 
 interface Props {
@@ -28,28 +28,18 @@ export default function SwipeableRow({ onDelete, onPress, children, stripped }: 
     const scale = drag.interpolate({
       inputRange: [-90, -20, 0],
       outputRange: [1, 0.9, 0.7],
-      extrapolate: "clamp",
+      extrapolate: 'clamp',
     });
     const opacity = drag.interpolate({
       inputRange: [-90, -40, 0],
       outputRange: [1, 1, 0],
-      extrapolate: "clamp",
+      extrapolate: 'clamp',
     });
     return (
       <Animated.View style={[styles.deleteAction, { opacity }]}>
-        <TouchableOpacity
-          style={styles.deleteBtn}
-          onPress={handleDelete}
-          activeOpacity={0.8}
-        >
-          <Animated.View
-            style={{ transform: [{ scale }], alignItems: "center" }}
-          >
-            <MaterialCommunityIcons
-              name="trash-can-outline"
-              size={22}
-              color="#fff"
-            />
+        <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete} activeOpacity={0.8}>
+          <Animated.View style={{ transform: [{ scale }], alignItems: 'center' }}>
+            <MaterialCommunityIcons name="trash-can-outline" size={22} color="#fff" />
             <Text style={styles.deleteText}>Delete</Text>
           </Animated.View>
         </TouchableOpacity>
@@ -78,28 +68,28 @@ export default function SwipeableRow({ onDelete, onPress, children, stripped }: 
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
     marginBottom: 4,
     borderWidth: 1,
-    borderColor: "#E8EBF0",
+    borderColor: '#E8EBF0',
   },
   deleteAction: {
     width: 80,
     borderRadius: 16,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   deleteBtn: {
     flex: 1,
-    backgroundColor: "#EF4444",
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: '#EF4444',
+    justifyContent: 'center',
+    alignItems: 'center',
     borderRadius: 16,
     marginBottom: 4,
   },
-  deleteText: { color: "#fff", fontSize: 12, marginTop: 4, fontWeight: "600" },
-  plain: { flexDirection: "row", alignItems: "center", backgroundColor: "#FFFFFF" },
+  deleteText: { color: '#fff', fontSize: 12, marginTop: 4, fontWeight: '600' },
+  plain: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF' },
 });

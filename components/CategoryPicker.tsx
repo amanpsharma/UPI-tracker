@@ -25,10 +25,7 @@ export default function CategoryPicker({ selected, onSelect }: Props) {
               size={20}
               color={active ? '#fff' : CATEGORY_COLORS[c]}
             />
-            <Text
-              variant="labelSmall"
-              style={[styles.label, active && { color: '#fff' }]}
-            >
+            <Text variant="labelSmall" style={[styles.label, active && { color: '#fff' }]}>
               {c}
             </Text>
           </TouchableOpacity>

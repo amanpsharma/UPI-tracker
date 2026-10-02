@@ -3,7 +3,7 @@ declare module 'react-native-get-sms-android' {
     list(
       filter: string,
       onFailure: (error: string) => void,
-      onSuccess: (count: number, smsList: string) => void
+      onSuccess: (count: number, smsList: string) => void,
     ): void;
   }
 

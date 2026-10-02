@@ -41,7 +41,9 @@ function extractRecipientName(body: string): string | null {
     if (name.length >= 2 && name.length <= 60) return name;
   }
   // Standard format: "To <Name> On|At|via|Ref|..." or just "to <Name>" if at the end of the sentence
-  const toMatch = body.match(/\b(?:to|towards)\s+([A-Za-z][A-Za-z\s]+?)(?=\s+(?:on|at|via|ref|upi|\d{2}[\/\-])|\s*$|\.)/i);
+  const toMatch = body.match(
+    /\b(?:to|towards)\s+([A-Za-z][A-Za-z\s]+?)(?=\s+(?:on|at|via|ref|upi|\d{2}[\/\-])|\s*$|\.)/i,
+  );
   if (toMatch) {
     const name = toMatch[1].trim();
     if (name.length >= 2 && name.length <= 50) return name;
@@ -49,13 +51,15 @@ function extractRecipientName(body: string): string | null {
   // Try finding VPA handle explicitly if we missed "to"
   const vpaMatch = body.match(/([a-zA-Z0-9._+\-]{2,})@[a-zA-Z]{2,15}/);
   if (vpaMatch) return vpaMatch[1];
-  
+
   return null;
 }
 
 // "from Priya Sharma via" / "by Raj Kumar UPI" / "from user on" / "by VPA"
 function extractSenderName(body: string): string | null {
-  const match = body.match(/\b(?:from|by)\s+([A-Za-z][A-Za-z\s]+?)(?=\s+(?:via|on|upi|ref|\d{2}[\/\-])|\s*$|\.)/i);
+  const match = body.match(
+    /\b(?:from|by)\s+([A-Za-z][A-Za-z\s]+?)(?=\s+(?:via|on|upi|ref|\d{2}[\/\-])|\s*$|\.)/i,
+  );
   if (match) {
     const name = match[1].trim();
     if (name.length >= 2 && name.length <= 50) return name;
@@ -71,9 +75,10 @@ function extractTransactionId(body: string): string {
   const axisMatch = body.match(/UPI\/P2[A-Z]\/(\d{8,})\//i);
   if (axisMatch) return axisMatch[1];
   // Standard: "UPI Ref 123456", "Ref No 123456", "Txn ID 123456", or just plain 12-digit number following UPI
-  const match = body.match(
-    /(?:UPI\s*Ref(?:erence)?\s*(?:No\.?|ID|#)?|Ref(?:erence)?\s*(?:No\.?|ID|#)?|Txn(?:\s*ID)?|Transaction\s*(?:ID|No\.?))\s*[:\-]?\s*([A-Z0-9]{6,})/i
-  ) || body.match(/(?:\b|UPI)[^\w\d]*([0-9]{12})\b/i);
+  const match =
+    body.match(
+      /(?:UPI\s*Ref(?:erence)?\s*(?:No\.?|ID|#)?|Ref(?:erence)?\s*(?:No\.?|ID|#)?|Txn(?:\s*ID)?|Transaction\s*(?:ID|No\.?))\s*[:\-]?\s*([A-Z0-9]{6,})/i,
+    ) || body.match(/(?:\b|UPI)[^\w\d]*([0-9]{12})\b/i);
   return match ? match[1] : '';
 }
 
@@ -95,9 +100,7 @@ function isUpiDebitSms(body: string): boolean {
 
 function isUpiCreditSms(body: string): boolean {
   return (
-    /\b(?:credited|received|credit)\b/i.test(body) &&
-    hasUpiSignal(body) &&
-    hasRupeeAmount(body)
+    /\b(?:credited|received|credit)\b/i.test(body) && hasUpiSignal(body) && hasRupeeAmount(body)
   );
 }
 
@@ -131,9 +134,7 @@ function makeDedupeKey(parsed: ParsedPayment): string {
   return `sms_${parsed.amount}_${parsed.upiId || parsed.recipient}_${minute}`;
 }
 
-export function parsedToTransaction(
-  parsed: ParsedPayment
-): Omit<Transaction, '_id' | 'createdAt'> {
+export function parsedToTransaction(parsed: ParsedPayment): Omit<Transaction, '_id' | 'createdAt'> {
   return {
     amount: parsed.amount,
     recipient: parsed.recipient,

@@ -1,8 +1,14 @@
 import { useState } from 'react';
 import {
-  View, StyleSheet, KeyboardAvoidingView, Platform,
-  TouchableOpacity, ScrollView, TextInput as RNTextInput,
-  ActivityIndicator, Alert,
+  View,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableOpacity,
+  ScrollView,
+  TextInput as RNTextInput,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,13 +23,32 @@ import { colors } from '@/constants/theme';
 WebBrowser.maybeCompleteAuthSession();
 
 const SOCIAL = [
-  { strategy: 'oauth_google' as OAuthStrategy, label: 'Continue with Google', icon: 'google', iconColor: '#4285F4' },
-  { strategy: 'oauth_facebook' as OAuthStrategy, label: 'Continue with Facebook', icon: 'facebook', iconColor: '#1877F2' },
-  { strategy: 'oauth_x' as OAuthStrategy, label: 'Continue with X', icon: 'twitter', iconColor: colors.text },
+  {
+    strategy: 'oauth_google' as OAuthStrategy,
+    label: 'Continue with Google',
+    icon: 'google',
+    iconColor: '#4285F4',
+  },
+  {
+    strategy: 'oauth_facebook' as OAuthStrategy,
+    label: 'Continue with Facebook',
+    icon: 'facebook',
+    iconColor: '#1877F2',
+  },
+  {
+    strategy: 'oauth_x' as OAuthStrategy,
+    label: 'Continue with X',
+    icon: 'twitter',
+    iconColor: colors.text,
+  },
 ];
 
 function makeUsername(email: string) {
-  const base = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '').toLowerCase().slice(0, 15);
+  const base = email
+    .split('@')[0]
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toLowerCase()
+    .slice(0, 15);
   return base + Math.random().toString(36).slice(2, 6);
 }
 
@@ -48,9 +73,18 @@ export default function SignUp() {
 
   const handleSignUp = async () => {
     if (!isLoaded || !signUp) return;
-    if (!email.trim() || !password) { setError('Email and password are required.'); return; }
-    if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
-    if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
+    if (!email.trim() || !password) {
+      setError('Email and password are required.');
+      return;
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
 
     setLoading(true);
     setError('');
@@ -70,7 +104,12 @@ export default function SignUp() {
     } catch (err: any) {
       if (err?.errors?.[0]?.meta?.paramName === 'username') {
         try {
-          await signUp.create({ emailAddress: email.trim(), password, firstName: firstName || undefined, lastName });
+          await signUp.create({
+            emailAddress: email.trim(),
+            password,
+            firstName: firstName || undefined,
+            lastName,
+          });
           await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
           setPendingVerification(true);
           return;
@@ -79,7 +118,12 @@ export default function SignUp() {
           return;
         }
       }
-      setError(err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ?? err?.message ?? 'Sign-up failed.');
+      setError(
+        err?.errors?.[0]?.longMessage ??
+          err?.errors?.[0]?.message ??
+          err?.message ??
+          'Sign-up failed.',
+      );
     } finally {
       setLoading(false);
     }
@@ -104,16 +148,24 @@ export default function SignUp() {
   };
 
   const handleVerify = async () => {
-    if (!isLoaded || !signUp) { Alert.alert('Session expired', 'Please start sign-up again.'); return; }
+    if (!isLoaded || !signUp) {
+      Alert.alert('Session expired', 'Please start sign-up again.');
+      return;
+    }
     const trimmed = code.replace(/\s/g, '');
-    if (trimmed.length < 6) { setError('Enter the full 6-digit code from your email.'); return; }
+    if (trimmed.length < 6) {
+      setError('Enter the full 6-digit code from your email.');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
       const result = await signUp.attemptEmailAddressVerification({ code: trimmed });
       await completeSignUp(result);
     } catch (err: any) {
-      setError(err?.errors?.[0]?.longMessage ?? err?.message ?? 'Verification failed. Check the code.');
+      setError(
+        err?.errors?.[0]?.longMessage ?? err?.message ?? 'Verification failed. Check the code.',
+      );
     } finally {
       setLoading(false);
     }
@@ -142,8 +194,7 @@ export default function SignUp() {
       }
       if (result?.signUp?.status === 'missing_requirements') {
         const missing: string[] = result.signUp.missingFields ?? [];
-        const emailFromGoogle: string =
-          result.signUp.emailAddress ?? '';
+        const emailFromGoogle: string = result.signUp.emailAddress ?? '';
         const patch: Record<string, string> = {};
 
         if (missing.includes('username')) {
@@ -183,7 +234,10 @@ export default function SignUp() {
     } catch (err: any) {
       Alert.alert(
         'Login failed',
-        err?.errors?.[0]?.longMessage ?? err?.errors?.[0]?.message ?? err?.message ?? 'Social login failed.',
+        err?.errors?.[0]?.longMessage ??
+          err?.errors?.[0]?.message ??
+          err?.message ??
+          'Social login failed.',
       );
     } finally {
       setSsoLoading(null);
@@ -194,12 +248,36 @@ export default function SignUp() {
   if (pendingVerification) {
     return (
       <SafeAreaView style={styles.container}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
           <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
             <View style={styles.logoRow}>
-              <View style={{ width: 44, height: 44, borderRadius: 10, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center' }}>
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 10,
+                  backgroundColor: colors.primary,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
                 <Text style={{ color: colors.text, fontSize: 19, fontWeight: '800' }}>₹</Text>
-                <View style={{ position: 'absolute', bottom: 4, right: 3, backgroundColor: colors.success, borderRadius: 4, width: 14, height: 14, justifyContent: 'center', alignItems: 'center' }}>
+                <View
+                  style={{
+                    position: 'absolute',
+                    bottom: 4,
+                    right: 3,
+                    backgroundColor: colors.success,
+                    borderRadius: 4,
+                    width: 14,
+                    height: 14,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
                   <MaterialCommunityIcons name="trending-up" size={9} color="#fff" />
                 </View>
               </View>
@@ -236,10 +314,11 @@ export default function SignUp() {
               onPress={handleVerify}
               disabled={loading}
             >
-              {loading
-                ? <ActivityIndicator color={colors.text} size="small" />
-                : <Text style={styles.submitBtnText}>Verify email</Text>
-              }
+              {loading ? (
+                <ActivityIndicator color={colors.text} size="small" />
+              ) : (
+                <Text style={styles.submitBtnText}>Verify email</Text>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.footer} onPress={handleSignUp}>
@@ -255,7 +334,10 @@ export default function SignUp() {
   // ── Main sign-up screen ──
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <ScrollView
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
@@ -263,9 +345,30 @@ export default function SignUp() {
         >
           {/* Logo */}
           <View style={styles.logoRow}>
-            <View style={{ width: 44, height: 44, borderRadius: 10, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center' }}>
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 10,
+                backgroundColor: colors.primary,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
               <Text style={{ color: colors.text, fontSize: 19, fontWeight: '800' }}>₹</Text>
-              <View style={{ position: 'absolute', bottom: 4, right: 3, backgroundColor: colors.success, borderRadius: 4, width: 14, height: 14, justifyContent: 'center', alignItems: 'center' }}>
+              <View
+                style={{
+                  position: 'absolute',
+                  bottom: 4,
+                  right: 3,
+                  backgroundColor: colors.success,
+                  borderRadius: 4,
+                  width: 14,
+                  height: 14,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
                 <MaterialCommunityIcons name="trending-up" size={9} color="#fff" />
               </View>
             </View>
@@ -286,10 +389,11 @@ export default function SignUp() {
                 disabled={ssoLoading !== null}
                 activeOpacity={0.7}
               >
-                {ssoLoading === strategy
-                  ? <ActivityIndicator size={16} color={colors.textMuted} />
-                  : <MaterialCommunityIcons name={icon as any} size={18} color={iconColor} />
-                }
+                {ssoLoading === strategy ? (
+                  <ActivityIndicator size={16} color={colors.textMuted} />
+                ) : (
+                  <MaterialCommunityIcons name={icon as any} size={18} color={iconColor} />
+                )}
                 <Text style={styles.socialBtnText}>{label}</Text>
               </TouchableOpacity>
             ))}
@@ -344,7 +448,7 @@ export default function SignUp() {
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
               />
-              <TouchableOpacity onPress={() => setShowPassword(v => !v)} style={styles.showBtn}>
+              <TouchableOpacity onPress={() => setShowPassword((v) => !v)} style={styles.showBtn}>
                 <Text style={styles.showBtnText}>{showPassword ? 'Hide' : 'Show'}</Text>
               </TouchableOpacity>
             </View>
@@ -363,7 +467,7 @@ export default function SignUp() {
                 secureTextEntry={!showConfirm}
                 autoCapitalize="none"
               />
-              <TouchableOpacity onPress={() => setShowConfirm(v => !v)} style={styles.showBtn}>
+              <TouchableOpacity onPress={() => setShowConfirm((v) => !v)} style={styles.showBtn}>
                 <Text style={styles.showBtnText}>{showConfirm ? 'Hide' : 'Show'}</Text>
               </TouchableOpacity>
             </View>
@@ -378,10 +482,11 @@ export default function SignUp() {
             disabled={loading}
             activeOpacity={0.8}
           >
-            {loading
-              ? <ActivityIndicator color={colors.text} size="small" />
-              : <Text style={styles.submitBtnText}>Create account</Text>
-            }
+            {loading ? (
+              <ActivityIndicator color={colors.text} size="small" />
+            ) : (
+              <Text style={styles.submitBtnText}>Create account</Text>
+            )}
           </TouchableOpacity>
 
           {/* Footer */}
@@ -403,21 +508,37 @@ const styles = StyleSheet.create({
 
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 32 },
   logoBox: {
-    width: 44, height: 44, borderRadius: 12, backgroundColor: colors.primary,
-    justifyContent: 'center', alignItems: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   logoIcon: { color: colors.text, fontSize: 20, fontWeight: '800' },
   appName: { fontSize: 17, fontWeight: '700', color: colors.text },
 
   verifyIconWrap: { alignItems: 'center', marginBottom: 20, marginTop: 20 },
-  title: { fontSize: 30, fontWeight: '800', color: colors.text, marginBottom: 8, letterSpacing: -0.5 },
+  title: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: 8,
+    letterSpacing: -0.5,
+  },
   subtitle: { fontSize: 14, color: colors.textSecondary, lineHeight: 20, marginBottom: 28 },
 
   socialGroup: { gap: 10, marginBottom: 24 },
   socialBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    borderWidth: 1, borderColor: colors.border, borderRadius: 12,
-    backgroundColor: colors.surface, paddingVertical: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+    paddingVertical: 13,
   },
   socialBtnText: { fontSize: 14, fontWeight: '600', color: colors.text },
 
@@ -426,29 +547,50 @@ const styles = StyleSheet.create({
   dividerText: { fontSize: 12, color: colors.textMuted, fontWeight: '600', letterSpacing: 0.5 },
 
   tabToggle: {
-    flexDirection: 'row', backgroundColor: colors.surfaceElevated, borderRadius: 10,
-    padding: 3, marginBottom: 22,
+    flexDirection: 'row',
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: 10,
+    padding: 3,
+    marginBottom: 22,
   },
   tabBtn: { flex: 1, paddingVertical: 9, borderRadius: 8, alignItems: 'center' },
   tabBtnActive: {
     backgroundColor: colors.surface,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08, shadowRadius: 2, elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 2,
   },
   tabBtnText: { fontSize: 14, fontWeight: '600', color: colors.textMuted },
   tabBtnTextActive: { color: colors.text },
 
   fieldGroup: { marginBottom: 14 },
-  fieldLabel: { fontSize: 11, fontWeight: '700', color: colors.textMuted, letterSpacing: 0.8, marginBottom: 6 },
+  fieldLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+    letterSpacing: 0.8,
+    marginBottom: 6,
+  },
   input: {
-    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 13,
-    fontSize: 15, color: colors.text,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    fontSize: 15,
+    color: colors.text,
   },
   inputRow: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
-    borderRadius: 12, paddingLeft: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingLeft: 14,
   },
   inputFlex: { flex: 1, paddingVertical: 13, fontSize: 15, color: colors.text },
   showBtn: { paddingHorizontal: 14, paddingVertical: 13 },
@@ -457,8 +599,12 @@ const styles = StyleSheet.create({
   errorText: { color: colors.danger, fontSize: 13, marginBottom: 12 },
 
   submitBtn: {
-    borderWidth: 0, borderRadius: 12,
-    paddingVertical: 15, alignItems: 'center', backgroundColor: colors.primary, marginBottom: 20,
+    borderWidth: 0,
+    borderRadius: 12,
+    paddingVertical: 15,
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    marginBottom: 20,
   },
   submitBtnMuted: { opacity: 0.6 },
   submitBtnText: { fontSize: 15, fontWeight: '700', color: colors.text },

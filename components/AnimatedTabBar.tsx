@@ -1,14 +1,15 @@
-import React, { useEffect } from "react";
-import { View, TouchableOpacity, StyleSheet, Platform } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import React, { useEffect } from 'react';
+import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
-} from "react-native-reanimated";
-import * as Haptics from "expo-haptics";
-import { colors, fonts, radius } from "@/constants/theme";
+  interpolateColor,
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import { colors, fonts, radius } from '@/constants/theme';
 
 type TabItem = {
   name: string;
@@ -18,11 +19,16 @@ type TabItem = {
 };
 
 const TABS: TabItem[] = [
-  { name: "index", label: "Home", icon: "home-outline", iconFocused: "home" },
-  { name: "activity", label: "Activity", icon: "swap-horizontal", iconFocused: "swap-horizontal" },
-  { name: "history", label: "History", icon: "calendar-month-outline", iconFocused: "calendar-month" },
-  { name: "stats", label: "Insights", icon: "chart-arc", iconFocused: "chart-arc" },
-  { name: "settings", label: "Profile", icon: "account-outline", iconFocused: "account" },
+  { name: 'index', label: 'Home', icon: 'home-outline', iconFocused: 'home' },
+  { name: 'activity', label: 'Activity', icon: 'swap-horizontal', iconFocused: 'swap-horizontal' },
+  {
+    name: 'history',
+    label: 'History',
+    icon: 'calendar-month-outline',
+    iconFocused: 'calendar-month',
+  },
+  { name: 'stats', label: 'Insights', icon: 'chart-arc', iconFocused: 'chart-arc' },
+  { name: 'settings', label: 'Profile', icon: 'account-outline', iconFocused: 'account' },
 ];
 
 function TabButton({
@@ -37,10 +43,12 @@ function TabButton({
   const scale = useSharedValue(1);
   const iconTranslateY = useSharedValue(focused ? -2 : 0);
   const indicatorWidth = useSharedValue(focused ? 18 : 0);
+  const selection = useSharedValue(focused ? 1 : 0);
 
   useEffect(() => {
-    iconTranslateY.value = withSpring(focused ? -2 : 0, { damping: 14, stiffness: 200 });
-    indicatorWidth.value = withSpring(focused ? 18 : 0, { damping: 14, stiffness: 200 });
+    iconTranslateY.value = withSpring(focused ? -2 : 0, { damping: 16, stiffness: 220 });
+    indicatorWidth.value = withSpring(focused ? 18 : 0, { damping: 16, stiffness: 220 });
+    selection.value = withTiming(focused ? 1 : 0, { duration: 180 });
   }, [focused]);
 
   const containerStyle = useAnimatedStyle(() => ({
@@ -48,7 +56,14 @@ function TabButton({
   }));
 
   const iconStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: iconTranslateY.value }],
+    backgroundColor: interpolateColor(selection.value, [0, 1], ['transparent', colors.primarySoft]),
+    transform: [{ translateY: iconTranslateY.value }, { scale: 0.94 + selection.value * 0.06 }],
+  }));
+
+  const labelStyle = useAnimatedStyle(() => ({
+    color: interpolateColor(selection.value, [0, 1], [colors.textMuted, colors.primary]),
+    opacity: 0.76 + selection.value * 0.24,
+    transform: [{ translateY: selection.value * -1 }],
   }));
 
   const indicatorStyle = useAnimatedStyle(() => ({
@@ -65,25 +80,16 @@ function TabButton({
   };
 
   return (
-    <TouchableOpacity
-      onPress={handlePress}
-      activeOpacity={1}
-      style={styles.tabButton}
-    >
+    <TouchableOpacity onPress={handlePress} activeOpacity={1} style={styles.tabButton}>
       <Animated.View style={[styles.tabContent, containerStyle]}>
-        <Animated.View style={[focused && styles.iconBg, iconStyle]}>
+        <Animated.View style={[styles.iconBg, iconStyle]}>
           <MaterialCommunityIcons
             name={(focused ? tab.iconFocused : tab.icon) as any}
             size={22}
             color={focused ? colors.primary : colors.textMuted}
           />
         </Animated.View>
-        <Animated.Text
-          style={[
-            styles.label,
-            focused && styles.labelActive,
-          ]}
-        >
+        <Animated.Text style={[styles.label, focused && styles.labelActive, labelStyle]}>
           {tab.label}
         </Animated.Text>
         <Animated.View style={[styles.indicator, indicatorStyle]} />
@@ -92,11 +98,7 @@ function TabButton({
   );
 }
 
-export default function AnimatedTabBar({
-  state,
-  descriptors,
-  navigation,
-}: any) {
+export default function AnimatedTabBar({ state, descriptors, navigation }: any) {
   return (
     <View style={styles.container}>
       <View style={styles.inner}>
@@ -118,7 +120,7 @@ export default function AnimatedTabBar({
                 focused={focused}
                 onPress={() => {
                   const event = navigation.emit({
-                    type: "tabPress",
+                    type: 'tabPress',
                     target: route.key,
                     canPreventDefault: true,
                   });
@@ -137,17 +139,17 @@ export default function AnimatedTabBar({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
-    paddingBottom: Platform.OS === "ios" ? 20 : 8,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 8,
     paddingTop: 6,
     backgroundColor: colors.bg,
   },
   inner: {
-    flexDirection: "row",
+    flexDirection: 'row',
     backgroundColor: colors.surface,
     borderRadius: radius.xl,
     paddingVertical: 8,
     paddingHorizontal: 4,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 16,
@@ -155,26 +157,25 @@ const styles = StyleSheet.create({
   },
   tabButton: {
     flex: 1,
-    alignItems: "center",
+    alignItems: 'center',
   },
   tabContent: {
-    alignItems: "center",
+    alignItems: 'center',
     gap: 3,
   },
   iconBg: {
-    backgroundColor: colors.primarySoft,
     borderRadius: 10,
     padding: 4,
   },
   label: {
     fontSize: 10,
-    fontWeight: "500",
+    fontWeight: '500',
     color: colors.textMuted,
     fontFamily: fonts.medium,
   },
   labelActive: {
     color: colors.primary,
-    fontWeight: "600",
+    fontWeight: '600',
     fontFamily: fonts.semibold,
   },
   indicator: {
